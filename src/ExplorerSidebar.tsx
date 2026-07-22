@@ -23,9 +23,12 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     openFile,
     openInstructionReference,
     createFile,
+    importFiles,
     commitRename,
     deleteFile,
     statusOf,
+    contentOf,
+    download,
   } = useApp();
 
   const statusTitle: Record<string, string> = {
@@ -35,7 +38,22 @@ export default function ExplorerSidebar({ width }: { width: number }) {
   };
   const [edit, setEdit] = useState<Edit>(null);
   const [draft, setDraft] = useState("");
+  const [dragging, setDragging] = useState(false);
   const finishing = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = event.target.files;
+    if (picked?.length) void importFiles(picked);
+    event.target.value = ""; // allow re-importing the same file later
+  };
+
+  const onDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragging(false);
+    const dropped = event.dataTransfer.files;
+    if (dropped?.length) void importFiles(dropped);
+  };
 
   const startNew = () => {
     setDraft("");
@@ -101,17 +119,45 @@ export default function ExplorerSidebar({ width }: { width: number }) {
             {files.length}
           </span>
         </div>
-        <button
-          aria-label="Create assembly file"
-          className="icon-btn"
-          onClick={startNew}
-          title="New assembly file"
-        >
-          <Icon name="plus" size={16} />
-        </button>
+        <div className="section-actions">
+          <button
+            aria-label="Import assembly files from disk"
+            className="icon-btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Import .asm files"
+          >
+            <Icon name="upload" size={16} />
+          </button>
+          <button
+            aria-label="Create assembly file"
+            className="icon-btn"
+            onClick={startNew}
+            title="New assembly file"
+          >
+            <Icon name="plus" size={16} />
+          </button>
+        </div>
       </div>
 
-      <ul aria-label="Assembly files" className="filelist source-files">
+      <input
+        accept=".asm,.z80,.s,.inc,.txt,text/plain"
+        className="hidden-file-input"
+        multiple
+        onChange={onPick}
+        ref={fileInputRef}
+        type="file"
+      />
+
+      <ul
+        aria-label="Assembly files"
+        className={`filelist source-files${dragging ? " drop-active" : ""}`}
+        onDragLeave={() => setDragging(false)}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDrop={onDrop}
+      >
         {files.map((file) => {
           if (edit?.mode === "rename" && edit.name === file.name) {
             return inputRow(file.name);
@@ -140,6 +186,17 @@ export default function ExplorerSidebar({ width }: { width: number }) {
                 <span className="fname">{file.name}</span>
               </button>
               <span className="file-actions">
+                <button
+                  aria-label={`Export ${file.name} to disk`}
+                  className="icon-btn"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    download(file.name, contentOf(file.name));
+                  }}
+                  title="Export .asm"
+                >
+                  <Icon name="download" size={15} />
+                </button>
                 <button
                   aria-label={`Rename ${file.name}`}
                   className="icon-btn"

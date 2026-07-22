@@ -432,6 +432,16 @@ kbd {
 
 .section-heading { gap: 6px; }
 
+.section-actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
 .section-count {
   color: var(--fg-dim);
   font-size: 10px;
@@ -469,6 +479,11 @@ kbd {
 .source-files li:hover,
 .source-files li:focus-within { background: var(--surface-hover); }
 .source-files li.active { background: var(--surface-active); }
+
+.source-files.drop-active {
+  box-shadow: inset 0 0 0 1.5px var(--accent, #3b82f6);
+  border-radius: 4px;
+}
 
 .file-open {
   align-items: center;

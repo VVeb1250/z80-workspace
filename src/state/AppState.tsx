@@ -59,6 +59,8 @@ export interface AppState {
   openFile: (name: string) => void;
   openInstructionReference: () => void;
   createFile: (input: string) => void;
+  /** Import .asm sources from disk (file picker or drag-drop). */
+  importFiles: (files: FileList | File[]) => Promise<void>;
   deleteFile: (name: string) => void;
   commitRename: (oldName: string, input: string) => void;
   statusOf: (name: string) => CompileStatus;
@@ -202,6 +204,34 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         queueMicrotask(() => openFile(name));
         return next;
       });
+    },
+    [openFile],
+  );
+
+  // Import .asm files from disk. Names are normalized (collisions get a
+  // numeric suffix); the last imported file opens as the active editor tab.
+  const importFiles = useCallback(
+    async (fileList: FileList | File[]) => {
+      const incoming = Array.from(fileList);
+      if (!incoming.length) return;
+      const read = await Promise.all(
+        incoming.map(async (file) => ({
+          base: file.name,
+          content: await file.text(),
+        })),
+      );
+      let lastName = "";
+      setFiles((prev) => {
+        let next = prev;
+        for (const { base, content } of read) {
+          const name = normalizeName(base, next);
+          next = [...next, { name, content }];
+          lastName = name;
+        }
+        saveFiles(next);
+        return next;
+      });
+      if (lastName) queueMicrotask(() => openFile(lastName));
     },
     [openFile],
   );
@@ -412,6 +442,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     openFile,
     openInstructionReference,
     createFile,
+    importFiles,
     deleteFile,
     commitRename,
     statusOf,
