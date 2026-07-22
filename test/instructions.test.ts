@@ -3,6 +3,7 @@ import test from "node:test";
 import { Z80_MNEMONICS } from "../src/editor/z80language.ts";
 import {
   filterZ80Instructions,
+  instructionForms,
   Z80_INSTRUCTIONS,
 } from "../src/instructions/z80Instructions.ts";
 import {
@@ -41,6 +42,39 @@ test("provides opcode size and timing for each encoding form", () => {
         opcode && bytes && mCycles && tStates,
     ),
   );
+});
+
+test("documents every direct and absolute-memory LD operand family", () => {
+  const ld = Z80_INSTRUCTIONS.find((instruction) => instruction.mnemonic === "LD");
+  assert.ok(ld);
+  const forms = new Set(ld.encodings.map((encoding) => encoding.form));
+  for (const expected of [
+    "LD A, (BC)",
+    "LD A, (DE)",
+    "LD (BC), A",
+    "LD (DE), A",
+    "LD BC, (nn)",
+    "LD DE, (nn)",
+    "LD SP, (nn)",
+    "LD (nn), BC",
+    "LD (nn), DE",
+    "LD (nn), SP",
+  ]) {
+    assert.ok(forms.has(expected), `missing ${expected}`);
+  }
+});
+
+test("uses encoding data as the visible operand-form source", () => {
+  const ld = Z80_INSTRUCTIONS.find((instruction) => instruction.mnemonic === "LD");
+  const haltMatches = Z80_INSTRUCTIONS.filter(
+    (instruction) => instruction.mnemonic === "HALT",
+  );
+  assert.ok(ld);
+  assert.deepEqual(instructionForms(ld), ld.encodings.map(({ form }) => form));
+  assert.equal(instructionForms(ld).includes("LD A, (BC)"), true);
+  assert.equal(haltMatches.length, 1);
+  assert.deepEqual(instructionForms(haltMatches[0]), ["HALT"]);
+  assert.equal(haltMatches[0].encodings[0].opcode, "76");
 });
 
 test("converts opcode bytes to binary without losing symbolic operands", () => {
@@ -105,5 +139,9 @@ test("searches instruction names, syntax and plain-language descriptions", () =>
     filterZ80Instructions("(IX+d)", "rotate").some(
       (instruction) => instruction.mnemonic === "BIT",
     ),
+  );
+  assert.deepEqual(
+    filterZ80Instructions("LD A, (BC)").map(({ mnemonic }) => mnemonic),
+    ["LD"],
   );
 });

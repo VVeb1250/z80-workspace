@@ -135,6 +135,10 @@ export const Z80_INSTRUCTIONS: Z80Instruction[] = RAW_INSTRUCTIONS.map(
   }),
 );
 
+export function instructionForms(instruction: Z80Instruction): string[] {
+  return [...new Set(instruction.encodings.map(({ form }) => form))];
+}
+
 export function filterZ80Instructions(
   query: string,
   group: InstructionGroupId | "all" = "all",
@@ -148,6 +152,7 @@ export function filterZ80Instructions(
       instruction.summary,
       instruction.description,
       ...instruction.syntax,
+      ...instructionForms(instruction),
     ].some((value) => value.toLowerCase().includes(normalized));
   });
 }

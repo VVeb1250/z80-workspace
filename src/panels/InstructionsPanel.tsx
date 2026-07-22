@@ -14,6 +14,7 @@ import {
 import {
   filterZ80Instructions,
   INSTRUCTION_GROUPS,
+  instructionForms,
   instructionGroupLabel,
   Z80_INSTRUCTIONS,
   type InstructionGroupId,
@@ -164,7 +165,7 @@ export default function InstructionsPanel() {
             <section aria-labelledby="instruction-syntax-title">
               <h3 id="instruction-syntax-title">Valid forms</h3>
               <div className="instruction-syntax-list">
-                {selected.syntax.map((syntax) => (
+                {instructionForms(selected).map((syntax) => (
                   <code key={syntax}>{syntax}</code>
                 ))}
               </div>
