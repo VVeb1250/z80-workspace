@@ -15,7 +15,7 @@ type Edit = { mode: "new" } | { mode: "rename"; name: string } | null;
 // Fixed left sidebar (outside dockview), like the VS Code / JetBrains project
 // pane. New / rename use an inline input row (VS Code style) — no native
 // prompt() dialogs.
-export default function ExplorerSidebar() {
+export default function ExplorerSidebar({ width }: { width: number }) {
   const {
     files,
     activeFile,
@@ -78,7 +78,10 @@ export default function ExplorerSidebar() {
   );
 
   return (
-    <aside className="app-sidebar">
+    <aside
+      className="app-sidebar"
+      style={{ flex: `0 0 ${width}px`, width }}
+    >
       <div className="section-title">
         <span>Explorer</span>
         <button className="icon-btn" title="New file" onClick={startNew}>

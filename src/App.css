@@ -157,6 +157,36 @@ body {
 .status.ok { color: var(--ok); }
 .status.err { color: var(--err); }
 
+/* Footer status bar — holds the output tabs while the panel is hidden. */
+.statusbar {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  height: 26px;
+  background: var(--bg-bar);
+  border-top: 1px solid var(--border);
+  padding: 0 8px;
+  font-size: 12px;
+}
+.sb-label {
+  display: flex;
+  align-items: center;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  margin-right: 8px;
+}
+.sb-tab {
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.sb-tab:hover { color: var(--fg); background: rgba(255, 255, 255, 0.08); }
+
 /* Body / panels */
 .body { flex: 1 1 auto; min-height: 0; }
 .pane {
@@ -274,23 +304,9 @@ body {
 /* Editor */
 .editor-wrap { flex: 1 1 auto; min-height: 0; }
 
-/* Output */
-.tabbar {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  flex: 0 0 auto;
-}
-.otab {
-  background: transparent;
-  color: var(--fg-dim);
-  border: none;
-  border-right: 1px solid var(--border);
-  padding: 6px 14px;
-  cursor: pointer;
-  font-size: 12px;
-  text-transform: capitalize;
-}
-.otab.active { background: var(--bg); color: var(--fg); }
+/* Output — channels are dockview tabs (Console / Listing / Hex). */
+.plain-tab { display: flex; align-items: center; height: 100%; }
+
 .output {
   flex: 1 1 auto;
   margin: 0;
@@ -301,4 +317,34 @@ body {
   line-height: 1.5;
   white-space: pre;
   color: var(--fg);
+}
+
+/* Match Monaco's scrollbar so the output pane feels like the editor:
+   slim, no arrows, translucent grey thumb over a transparent track. */
+.output {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(121, 121, 121, 0.4) transparent;
+}
+.output::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+.output::-webkit-scrollbar-track {
+  background: transparent;
+}
+.output::-webkit-scrollbar-thumb {
+  background: rgba(121, 121, 121, 0.4);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.output::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.7);
+  background-clip: padding-box;
+}
+.output::-webkit-scrollbar-thumb:active {
+  background: rgba(191, 191, 191, 0.4);
+  background-clip: padding-box;
+}
+.output::-webkit-scrollbar-corner {
+  background: transparent;
 }

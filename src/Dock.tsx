@@ -10,19 +10,31 @@ import EditorPanel from "./panels/EditorPanel";
 import ConsolePanel from "./panels/ConsolePanel";
 import SimulatorPanel from "./panels/SimulatorPanel";
 import { RightHeaderActions } from "./panels/HeaderActions";
-import { EDITOR_PREFIX, editorId, useApp } from "./state/AppState";
+import { PlainTab } from "./panels/PlainTab";
+import { mountOutputPanels } from "./panels/outputPanels";
+import {
+  EDITOR_PREFIX,
+  editorId,
+  isOutputId,
+  useApp,
+  type OutputTab,
+} from "./state/AppState";
+
+const tabComponents = { plain: PlainTab };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const components: any = {
   editor: (props: IDockviewPanelProps<{ name: string }>) => (
     <EditorPanel {...props} />
   ),
-  console: () => <ConsolePanel />,
+  console: (props: IDockviewPanelProps<{ channel: OutputTab }>) => (
+    <ConsolePanel channel={props.params.channel} />
+  ),
   simulator: () => <SimulatorPanel />,
 };
 
 export default function Dock() {
-  const { dockApiRef, activeFile, setActiveFile } = useApp();
+  const { dockApiRef, activeFile, setActiveFile, expandOutput } = useApp();
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
@@ -36,20 +48,19 @@ export default function Dock() {
         title: activeFile,
         params: { name: activeFile },
       });
-      // Output docked at the bottom.
-      const output = api.addPanel({
-        id: "output",
-        component: "console",
-        title: "Output",
-        position: { referencePanel: editorId(activeFile), direction: "below" },
-      });
-      output.api.setSize({ height: 200 });
+      // Output docked at the bottom. Each channel is its own (non-closable)
+      // dockview tab (Console / Listing / Hex) so the header reads like VS
+      // Code's panel — no redundant "Output" wrapper tab.
+      mountOutputPanels(api, editorId(activeFile));
 
-      // Keep the app's active file in sync with the focused editor tab.
+      // Keep the app's active file in sync with the focused editor tab; and
+      // selecting an output channel tab expands the panel if it was collapsed.
       api.onDidActivePanelChange((event) => {
         const id = event.panel?.id;
         if (id && id.startsWith(EDITOR_PREFIX)) {
           setActiveFile(id.slice(EDITOR_PREFIX.length));
+        } else if (id && isOutputId(id)) {
+          expandOutput();
         }
       });
 
@@ -73,6 +84,7 @@ export default function Dock() {
     <DockviewReact
       className="dock"
       components={components}
+      tabComponents={tabComponents}
       theme={themeDark}
       rightHeaderActionsComponent={RightHeaderActions}
       onReady={onReady}

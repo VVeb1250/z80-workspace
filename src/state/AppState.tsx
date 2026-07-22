@@ -27,6 +27,15 @@ export const hexName = (displayName: string) =>
   dosBaseName(displayName) + ".H";
 
 export type OutputTab = "console" | "listing" | "hex";
+/** Bottom output channels, rendered as VS Code-style panel tabs. */
+export const OUTPUT_TABS: OutputTab[] = ["console", "listing", "hex"];
+export const OUTPUT_PREFIX = "output:";
+export const outputId = (t: OutputTab) => OUTPUT_PREFIX + t;
+export const outputTitle = (t: OutputTab) => t[0].toUpperCase() + t.slice(1);
+export const isOutputId = (id: string) => id.startsWith(OUTPUT_PREFIX);
+/** Output group height when open, and when collapsed to just its tab bar. */
+export const OUTPUT_HEIGHT = 200;
+export const OUTPUT_HEADER = 35;
 
 export const EDITOR_PREFIX = "file:";
 export const editorId = (name: string) => EDITOR_PREFIX + name;
@@ -47,8 +56,10 @@ export interface AppState {
   // assemble
   busy: boolean;
   result: AssembleResult | null;
-  tab: OutputTab;
-  setTab: (t: OutputTab) => void;
+  focusOutput: (t: OutputTab) => void;
+  outputCollapsed: boolean;
+  expandOutput: () => void;
+  toggleOutputCollapsed: () => void;
   onAssemble: () => Promise<void>;
   statusText: string;
   download: (name: string, text: string) => void;
@@ -78,7 +89,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AssembleResult | null>(null);
-  const [tab, setTab] = useState<OutputTab>("console");
+  const [outputCollapsed, setOutputCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
   const dockApiRef = useRef<DockviewApi | null>(null);
@@ -195,16 +206,49 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [files, activeFile, persist, setActiveFile, openFile],
   );
 
+  // "Hide" the output = collapse the group to just its tab bar (the tabs stay,
+  // only the pre.output body is hidden). The button toggles it back open.
+  const resizeOutput = useCallback((height: number) => {
+    const api = dockApiRef.current;
+    if (!api) return;
+    const panel = OUTPUT_TABS.map((c) => api.getPanel(outputId(c))).find(
+      Boolean,
+    );
+    panel?.api.setSize({ height });
+  }, []);
+
+  const expandOutput = useCallback(() => {
+    resizeOutput(OUTPUT_HEIGHT);
+    setOutputCollapsed(false);
+  }, [resizeOutput]);
+
+  const toggleOutputCollapsed = useCallback(() => {
+    setOutputCollapsed((collapsed) => {
+      resizeOutput(collapsed ? OUTPUT_HEIGHT : OUTPUT_HEADER);
+      return !collapsed;
+    });
+  }, [resizeOutput]);
+
+  // Activate a bottom output channel (its dockview tab), VS Code-style,
+  // expanding the panel first if the user had collapsed it.
+  const focusOutput = useCallback(
+    (t: OutputTab) => {
+      expandOutput();
+      dockApiRef.current?.getPanel(outputId(t))?.api.setActive();
+    },
+    [expandOutput],
+  );
+
   const onAssemble = useCallback(async () => {
     setBusy(true);
     setResult(null);
-    setTab("console");
+    focusOutput("console");
     const fileName = active.name;
     const sourceAtCompile = active.content;
     try {
       const r = await assemble(sourceAtCompile, dosBaseName(fileName));
       setResult(r);
-      setTab(r.listing ? "listing" : "console");
+      focusOutput(r.listing ? "listing" : "console");
       if (r.hex) {
         // Persist the compiled artifact against this file.
         setFiles((prev) => {
@@ -237,7 +281,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } finally {
       setBusy(false);
     }
-  }, [active]);
+  }, [active, focusOutput]);
 
   const download = useCallback((name: string, text: string) => {
     const blob = new Blob([text], { type: "text/plain" });
@@ -316,8 +360,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     compiledHexFiles,
     busy,
     result,
-    tab,
-    setTab,
+    focusOutput,
+    outputCollapsed,
+    expandOutput,
+    toggleOutputCollapsed,
     onAssemble,
     statusText,
     download,

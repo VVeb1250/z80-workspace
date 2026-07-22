@@ -1,26 +1,21 @@
 import { useApp, type OutputTab } from "../state/AppState";
 
-export default function ConsolePanel() {
-  const { result, tab, setTab } = useApp();
+// One output channel = one dockview tab (VS Code panel style). The tabs
+// (Console / Listing / Hex) live in the dockview header; this just renders the
+// selected channel's text.
+export default function ConsolePanel({ channel }: { channel: OutputTab }) {
+  const { result } = useApp();
+
+  const text =
+    channel === "console"
+      ? result?.stdout || "Press Assemble to run C16."
+      : channel === "listing"
+        ? result?.listing || "(no listing yet)"
+        : result?.hex || "(no hex output yet)";
 
   return (
     <div className="panel-fill">
-      <div className="tabbar">
-        {(["console", "listing", "hex"] as OutputTab[]).map((t) => (
-          <button
-            key={t}
-            className={"otab " + (tab === t ? "active" : "")}
-            onClick={() => setTab(t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-      <pre className="output">
-        {tab === "console" && (result?.stdout || "Press Assemble to run C16.")}
-        {tab === "listing" && (result?.listing || "(no listing yet)")}
-        {tab === "hex" && (result?.hex || "(no hex output yet)")}
-      </pre>
+      <pre className="output">{text}</pre>
     </div>
   );
 }
