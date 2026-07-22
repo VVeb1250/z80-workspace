@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.wasm binary
+*.exe binary
+*.EXE binary
+*.DAT binary
+*.TBL binary
+*.png binary
+*.woff binary

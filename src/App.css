@@ -1,0 +1,130 @@
+:root {
+  --bg: #1e1e1e;
+  --bg-alt: #252526;
+  --bg-bar: #333333;
+  --border: #3c3c3c;
+  --fg: #cccccc;
+  --fg-dim: #808080;
+  --accent: #0e639c;
+  --accent-hi: #1177bb;
+  --ok: #4ec94e;
+  --err: #f14c4c;
+  --mono: "Cascadia Code", "Consolas", "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-bar);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.brand {
+  font-weight: 600;
+  margin-right: 8px;
+  letter-spacing: 0.3px;
+}
+.btn {
+  background: var(--bg-alt);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn:hover:not(:disabled) { background: #2a2d2e; }
+.btn.primary { background: var(--accent); border-color: var(--accent); }
+.btn.primary:hover:not(:disabled) { background: var(--accent-hi); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.status { margin-left: auto; font-size: 12px; color: var(--fg-dim); }
+.status.ok { color: var(--ok); }
+.status.err { color: var(--err); }
+
+/* Body / panels */
+.body { flex: 1 1 auto; min-height: 0; }
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+.pane.explorer { background: var(--bg-alt); }
+.pane-title {
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.resize {
+  width: 3px;
+  background: var(--border);
+  cursor: col-resize;
+}
+.resize:hover { background: var(--accent); }
+
+/* Explorer */
+.filelist { list-style: none; margin: 0; padding: 4px 0; font-size: 13px; }
+.filelist li { padding: 2px 12px; cursor: default; }
+.filelist li.active { background: #37373d; }
+.filelist li.child { padding-left: 24px; }
+.filelist li.muted { color: var(--fg-dim); }
+
+/* Editor */
+.editor-wrap { flex: 1 1 auto; min-height: 0; }
+
+/* Output */
+.tabbar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.tab {
+  background: transparent;
+  color: var(--fg-dim);
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.tab.active { background: var(--bg); color: var(--fg); }
+.output {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+  color: var(--fg);
+}
