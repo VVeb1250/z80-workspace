@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import DownloadMenu from "./DownloadMenu";
 import { Icon } from "./Icon";
 import SettingsMenu from "./SettingsMenu";
 import { useApp } from "./state/AppState";
@@ -8,9 +9,6 @@ export default function Toolbar() {
     onAssemble,
     busy,
     result,
-    activeArtifact,
-    download,
-    baseName,
     statusText,
     simRunning,
     toggleSimulator,
@@ -65,32 +63,7 @@ export default function Toolbar() {
           <Icon name={busy ? "loader" : "hammer"} className={busy ? "spin" : ""} />
           <span>{busy ? "Assembling…" : "Assemble"}</span>
         </button>
-        <div className="toolbar-group" aria-label="Export build files">
-          <button
-            className="tbtn"
-            disabled={!activeArtifact?.hex}
-            onClick={() =>
-              activeArtifact?.hex &&
-              download(`${baseName}.hex`, activeArtifact.hex)
-            }
-            title="Download Intel HEX output"
-          >
-            <Icon name="download" />
-            <span className="export-label">.H</span>
-          </button>
-          <button
-            className="tbtn"
-            disabled={!activeArtifact?.lst}
-            onClick={() =>
-              activeArtifact?.lst &&
-              download(`${baseName}.lst`, activeArtifact.lst)
-            }
-            title="Download assembler listing"
-          >
-            <Icon name="download" />
-            <span className="export-label">.LST</span>
-          </button>
-        </div>
+        <DownloadMenu />
         <button
           aria-pressed={simRunning}
           className={`tbtn sim-btn ${simRunning ? "running" : "idle"}`}

@@ -27,8 +27,6 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     commitRename,
     deleteFile,
     statusOf,
-    contentOf,
-    download,
   } = useApp();
 
   const statusTitle: Record<string, string> = {
@@ -186,17 +184,6 @@ export default function ExplorerSidebar({ width }: { width: number }) {
                 <span className="fname">{file.name}</span>
               </button>
               <span className="file-actions">
-                <button
-                  aria-label={`Export ${file.name} to disk`}
-                  className="icon-btn"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    download(file.name, contentOf(file.name));
-                  }}
-                  title="Export .asm"
-                >
-                  <Icon name="download" size={15} />
-                </button>
                 <button
                   aria-label={`Rename ${file.name}`}
                   className="icon-btn"

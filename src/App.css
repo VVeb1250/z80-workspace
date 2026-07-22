@@ -266,6 +266,50 @@ kbd {
   margin-left: 3px;
 }
 
+/* Download build-output menu (toolbar) */
+.download-trigger {
+  border-left: 1px solid var(--border-strong);
+  border-radius: 0;
+  margin-left: 3px;
+  padding-left: 10px;
+}
+.download-caret { margin-left: -1px; opacity: 0.7; }
+
+.download-menu {
+  background: var(--surface);
+  border: 1px solid #454545;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  color: var(--fg);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  padding: 4px;
+  position: fixed;
+  z-index: 1000;
+}
+
+.menu-item {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: var(--fg);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
+}
+.menu-item:hover:not(:disabled) { background: var(--surface-hover); }
+.menu-item:disabled { color: var(--fg-dim); cursor: default; opacity: 0.5; }
+
+.menu-item-main { font-size: 12px; }
+.menu-item-hint {
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
 /* Workspace settings popover */
 .settings-panel {
   background: var(--surface);
