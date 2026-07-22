@@ -42,13 +42,98 @@ const SIM_FILES = [
   "Z80.TBL",
 ];
 
+export const JSDOS_SCOPE = "jsdos-scope";
+
+// js-dos.css is a global DaisyUI/Tailwind sheet. Both our <link> and the one
+// js-dos.js injects itself leak component classes (.btn/.tab/.toggle/...) and
+// a preflight reset into the whole page. We confine all of it to the sim
+// container: disable every js-dos.css sheet and re-emit it prefixed under
+// `.jsdos-scope`, so nothing outside the simulator is ever touched.
+let scopingInstalled = false;
+
+function prefixSelector(selectorText: string, scope: string): string {
+  return selectorText
+    .split(",")
+    .map((raw) => {
+      const s = raw.trim();
+      if (s === "*") return `${scope} *`;
+      if (/^(html|body|:root|:host)\b/.test(s)) {
+        return s.replace(/^(html|body|:root|:host)/, scope);
+      }
+      return `${scope} ${s}`;
+    })
+    .join(", ");
+}
+
+function buildScoped(rules: CSSRuleList, scope: string): string {
+  let out = "";
+  for (const rule of Array.from(rules)) {
+    if (rule instanceof CSSStyleRule) {
+      out += `${prefixSelector(rule.selectorText, scope)}{${rule.style.cssText}}\n`;
+    } else if (rule instanceof CSSMediaRule) {
+      out += `@media ${rule.conditionText}{${buildScoped(rule.cssRules, scope)}}\n`;
+    } else if (
+      typeof CSSSupportsRule !== "undefined" &&
+      rule instanceof CSSSupportsRule
+    ) {
+      out += `@supports ${rule.conditionText}{${buildScoped(rule.cssRules, scope)}}\n`;
+    } else {
+      out += `${rule.cssText}\n`; // @keyframes / @font-face / etc. left as-is
+    }
+  }
+  return out;
+}
+
+async function scopeJsDosLink(link: HTMLLinkElement) {
+  if (link.dataset.jsdosScoped) return;
+  link.dataset.jsdosScoped = "1";
+  const href = link.href;
+  // Removing the node is the only reliable way to stop the global sheet —
+  // toggling link.disabled leaves sheet.disabled false and it keeps applying.
+  link.remove();
+  try {
+    const text = await (await fetch(href)).text();
+    const sheet = new CSSStyleSheet();
+    await sheet.replace(text);
+    const style = document.createElement("style");
+    style.setAttribute("data-jsdos-scoped", "");
+    style.textContent = buildScoped(sheet.cssRules, "." + JSDOS_SCOPE);
+    document.head.appendChild(style);
+  } catch {
+    // If scoping fails, restore the original global sheet so the sim still
+    // looks right (accepting the leak as the lesser evil).
+    const restore = document.createElement("link");
+    restore.rel = "stylesheet";
+    restore.href = href;
+    document.head.appendChild(restore);
+  }
+}
+
+function installCssScoping() {
+  if (scopingInstalled) return;
+  scopingInstalled = true;
+  const consider = (node: Node) => {
+    if (node instanceof HTMLLinkElement && /js-dos\.css/.test(node.href)) {
+      void scopeJsDosLink(node);
+    }
+  };
+  document.head
+    .querySelectorAll("link")
+    .forEach((l) => consider(l));
+  new MutationObserver((muts) => {
+    for (const m of muts) m.addedNodes.forEach(consider);
+  }).observe(document.head, { childList: true });
+}
+
 let jsdosLoad: Promise<DosFn> | null = null;
 
 function loadJsDos(): Promise<DosFn> {
   if (window.Dos) return Promise.resolve(window.Dos);
   if (jsdosLoad) return jsdosLoad;
+  // Catch every js-dos.css sheet (ours below + the one js-dos.js injects).
+  installCssScoping();
   jsdosLoad = new Promise<DosFn>((resolve, reject) => {
-    // CSS
+    // CSS (also scoped by the observer above)
     const css = document.createElement("link");
     css.rel = "stylesheet";
     css.href = JSDOS_BASE + "js-dos.css";

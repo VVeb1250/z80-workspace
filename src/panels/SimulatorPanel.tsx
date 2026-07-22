@@ -35,5 +35,5 @@ export default function SimulatorPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <div ref={elRef} className="panel-fill sim-wrap" />;
+  return <div ref={elRef} className="panel-fill sim-wrap jsdos-scope" />;
 }
