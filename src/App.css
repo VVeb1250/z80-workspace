@@ -77,6 +77,9 @@ body {
 }
 .pane.explorer { background: var(--bg-alt); }
 .pane-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 6px 10px;
   font-size: 11px;
   letter-spacing: 0.5px;
@@ -85,6 +88,17 @@ body {
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
 }
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.icon-btn:hover { color: var(--fg); background: #2a2d2e; }
 .resize {
   width: 3px;
   background: var(--border);
@@ -117,10 +131,21 @@ body {
 
 /* Explorer */
 .filelist { list-style: none; margin: 0; padding: 4px 0; font-size: 13px; }
-.filelist li { padding: 2px 12px; cursor: default; }
+.filelist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px 3px 12px;
+  cursor: pointer;
+}
+.filelist li:hover { background: #2a2d2e; }
 .filelist li.active { background: #37373d; }
-.filelist li.child { padding-left: 24px; }
 .filelist li.muted { color: var(--fg-dim); }
+.filelist li.readonly { cursor: default; padding-left: 20px; font-size: 12px; }
+.filelist li.readonly:hover { background: transparent; }
+.fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-actions { display: none; flex: 0 0 auto; }
+.filelist li:hover .file-actions { display: flex; }
 
 /* Editor */
 .editor-wrap { flex: 1 1 auto; min-height: 0; }

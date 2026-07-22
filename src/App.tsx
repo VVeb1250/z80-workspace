@@ -1,20 +1,40 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import {
-  SAMPLE_SOURCE,
   Z80_LANGUAGE_ID,
   z80Config,
   z80Language,
 } from "./editor/z80language";
 import { assemble, type AssembleResult } from "./dosbox/assembler";
 import { startSimulator, type SimulatorHandle } from "./dosbox/simulator";
+import {
+  dosBaseName,
+  loadActive,
+  loadFiles,
+  normalizeName,
+  saveActive,
+  saveFiles,
+  type AsmFile,
+} from "./files/store";
 import "./App.css";
 
 type OutputTab = "console" | "listing" | "hex";
 
+const TOOL_FILES = [
+  "C16.EXE",
+  "C16SORT.EXE",
+  "Z80.TBL",
+  "ASSEMBLE.DAT",
+  "UNASSEM.DAT",
+  "z80sim.exe",
+];
+
 export default function App() {
-  const [source, setSource] = useState(SAMPLE_SOURCE);
+  const [files, setFiles] = useState<AsmFile[]>(() => loadFiles());
+  const [activeName, setActiveName] = useState<string>(
+    () => loadActive() ?? loadFiles()[0].name,
+  );
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AssembleResult | null>(null);
   const [tab, setTab] = useState<OutputTab>("console");
@@ -23,6 +43,71 @@ export default function App() {
   const monacoReady = useRef(false);
   const simElRef = useRef<HTMLDivElement>(null);
   const simHandleRef = useRef<SimulatorHandle | null>(null);
+
+  const active = useMemo(
+    () => files.find((f) => f.name === activeName) ?? files[0],
+    [files, activeName],
+  );
+
+  const persist = useCallback((next: AsmFile[], nextActive?: string) => {
+    setFiles(next);
+    saveFiles(next);
+    if (nextActive) {
+      setActiveName(nextActive);
+      saveActive(nextActive);
+    }
+  }, []);
+
+  const updateSource = useCallback(
+    (content: string) => {
+      persist(
+        files.map((f) => (f.name === active.name ? { ...f, content } : f)),
+      );
+    },
+    [files, active, persist],
+  );
+
+  const selectFile = useCallback(
+    (name: string) => {
+      setActiveName(name);
+      saveActive(name);
+    },
+    [],
+  );
+
+  const newFile = useCallback(() => {
+    const input = window.prompt("New file name (base, .asm added):", "prog");
+    if (!input) return;
+    const name = normalizeName(input, files);
+    persist(
+      [...files, { name, content: `; ${name}\n\n                END\n` }],
+      name,
+    );
+  }, [files, persist]);
+
+  const deleteFile = useCallback(
+    (name: string) => {
+      if (files.length <= 1) {
+        window.alert("Keep at least one file.");
+        return;
+      }
+      if (!window.confirm(`Delete ${name}?`)) return;
+      const next = files.filter((f) => f.name !== name);
+      persist(next, name === active.name ? next[0].name : active.name);
+    },
+    [files, active, persist],
+  );
+
+  const renameFile = useCallback(
+    (name: string) => {
+      const input = window.prompt("Rename to (base):", name.replace(/\.asm$/i, ""));
+      if (!input) return;
+      const newName = normalizeName(input, files.filter((f) => f.name !== name));
+      const next = files.map((f) => (f.name === name ? { ...f, name: newName } : f));
+      persist(next, active.name === name ? newName : active.name);
+    },
+    [files, active, persist],
+  );
 
   const toggleSimulator = useCallback(async () => {
     if (simBusy) return;
@@ -34,7 +119,6 @@ export default function App() {
         setSimRunning(false);
       } else if (simElRef.current) {
         setSimRunning(true); // reveal container first so it has size
-        // let the panel lay out before js-dos measures the canvas
         await new Promise((r) => requestAnimationFrame(() => r(null)));
         simHandleRef.current = await startSimulator(simElRef.current);
       }
@@ -59,7 +143,7 @@ export default function App() {
     setResult(null);
     setTab("console");
     try {
-      const r = await assemble(source);
+      const r = await assemble(active.content, dosBaseName(active.name));
       setResult(r);
       setTab(r.listing ? "listing" : "console");
     } catch (e) {
@@ -73,7 +157,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, [source]);
+  }, [active]);
 
   const download = useCallback((name: string, text: string) => {
     const blob = new Blob([text], { type: "text/plain" });
@@ -85,6 +169,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   }, []);
 
+  const base = dosBaseName(active.name).toLowerCase();
   const statusText = busy
     ? "Assembling…"
     : result
@@ -105,14 +190,14 @@ export default function App() {
         <button
           className="btn"
           disabled={!result?.hex}
-          onClick={() => result && download("lab1.h", result.hex)}
+          onClick={() => result && download(`${base}.hex`, result.hex)}
         >
           Export .hex
         </button>
         <button
           className="btn"
           disabled={!result?.listing}
-          onClick={() => result && download("lab1.lst", result.listing)}
+          onClick={() => result && download(`${base}.lst`, result.listing)}
         >
           Export .lst
         </button>
@@ -134,26 +219,66 @@ export default function App() {
 
       <PanelGroup direction="horizontal" className="body">
         <Panel defaultSize={16} minSize={10} className="pane explorer">
-          <div className="pane-title">EXPLORER</div>
+          <div className="pane-title">
+            <span>Files</span>
+            <button className="icon-btn" title="New file" onClick={newFile}>
+              +
+            </button>
+          </div>
           <ul className="filelist">
-            <li className="active">lab1.asm</li>
-            <li className="muted">micro_processor/</li>
-            <li className="child muted">C16.EXE</li>
-            <li className="child muted">Z80.TBL</li>
-            <li className="child muted">z80sim.exe</li>
+            {files.map((f) => (
+              <li
+                key={f.name}
+                className={f.name === active.name ? "active" : ""}
+                onClick={() => selectFile(f.name)}
+              >
+                <span className="fname">{f.name}</span>
+                <span className="file-actions">
+                  <button
+                    className="icon-btn"
+                    title="Rename"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      renameFile(f.name);
+                    }}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="icon-btn"
+                    title="Delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteFile(f.name);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="pane-title">micro_processor (read-only)</div>
+          <ul className="filelist">
+            {TOOL_FILES.map((f) => (
+              <li key={f} className="muted readonly">
+                {f}
+              </li>
+            ))}
           </ul>
         </Panel>
 
         <PanelResizeHandle className="resize" />
 
         <Panel defaultSize={52} minSize={25} className="pane">
-          <div className="pane-title">lab1.asm</div>
+          <div className="pane-title">{active.name}</div>
           <div className="editor-wrap">
             <Editor
               language={Z80_LANGUAGE_ID}
               theme="vs-dark"
-              value={source}
-              onChange={(v) => setSource(v ?? "")}
+              path={active.name}
+              value={active.content}
+              onChange={(v) => updateSource(v ?? "")}
               beforeMount={beforeMount}
               options={{
                 fontSize: 13,

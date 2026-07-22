@@ -56,9 +56,6 @@ const TOOL_FILES = [
   "HEX.DAT",
 ];
 
-const SRC = "LAB1.ASM";
-const HEX = "LAB1.H";
-const LST = "LAB1.LST";
 const DONE = "DONE.TXT";
 
 let toolCache: { path: string; contents: Uint8Array }[] | null = null;
@@ -120,7 +117,14 @@ function parseErrors(text: string): number {
   return m ? parseInt(m[1], 10) : 0;
 }
 
-export async function assemble(source: string): Promise<AssembleResult> {
+export async function assemble(
+  source: string,
+  dosBase = "LAB1",
+): Promise<AssembleResult> {
+  const SRC = `${dosBase}.ASM`;
+  const HEX = `${dosBase}.H`;
+  const LST = `${dosBase}.LST`;
+
   const emulators = await getEmulators();
   const initFs: unknown[] = [...(await loadToolFiles())];
   initFs.push({ path: SRC, contents: new TextEncoder().encode(source) });
