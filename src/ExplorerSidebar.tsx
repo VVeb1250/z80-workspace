@@ -124,7 +124,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
             onClick={() => fileInputRef.current?.click()}
             title="Import .asm files"
           >
-            <Icon name="upload" size={16} />
+            <Icon name="import" size={16} />
           </button>
           <button
             aria-label="Create assembly file"

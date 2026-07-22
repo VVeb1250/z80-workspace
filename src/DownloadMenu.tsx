@@ -76,10 +76,10 @@ export default function DownloadMenu() {
         className="tbtn download-trigger"
         onClick={toggle}
         ref={triggerRef}
-        title="Download source or build output"
+        title="Export source or build output"
       >
-        <Icon name="download" />
-        <span>Download</span>
+        <Icon name="export" />
+        <span>Export</span>
         <Icon className="download-caret" name="chevron-down" size={14} />
       </button>
       {open &&

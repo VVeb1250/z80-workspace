@@ -3,7 +3,8 @@ export type IconName =
   | "circuit"
   | "hammer"
   | "download"
-  | "upload"
+  | "import"
+  | "export"
   | "play"
   | "stop"
   | "plus"
@@ -57,7 +58,13 @@ export function Icon({ name, size = 18, className = "" }: IconProps) {
         <path d="M5 19h14" />
       </>
     ),
-    upload: (
+    import: (
+      <>
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+        <path d="M12 3v12m0 0-4-4m4 4 4-4" />
+      </>
+    ),
+    export: (
       <>
         <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
         <path d="M12 15V3m0 0-4 4m4-4 4 4" />
