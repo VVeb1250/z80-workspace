@@ -1,32 +1,67 @@
-# React + TypeScript + Vite
+# Z80 Workspace
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+เว็บ IDE สำหรับเขียน / คอมไพล์ / จำลอง **Z80 assembly** รันในเบราว์เซอร์ล้วน ไม่ต้องติดตั้งอะไร — ใช้เครื่องมือ DOS ชุด `micro_processor` (Cross-16 assembler + Z80 ET-Board Simulator) ผ่าน DOSBox ที่คอมไพล์เป็น WebAssembly
 
-Currently, two official plugins are available:
+> โครงหน้าตาแบบ VS Code: sidebar + editor tabs + panel ล่าง
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ฟีเจอร์
 
-## React Compiler
+- **Editor** — Monaco (ตัวเดียวกับ VS Code) + syntax highlight Z80
+- **Assemble** — รัน `C16.EXE` (Cross-16 Meta-Assembler ตัวจริง) ใน DOSBox-WASM → ได้ Intel HEX + listing + สถานะ error
+- **z80sim** — จำลอง ET-Board Simulator (กราฟิกจริง) ในหน้าเดียวกัน, split ข้าง editor
+- **Bridge compile → sim** — ไฟล์ `.h` ที่คอมไพล์ถูกใส่เข้า z80sim ให้อัตโนมัติ กด **L (Load)** พิมพ์ชื่อไฟล์โหลดเข้า memory ได้เลย
+- **หลายไฟล์** — เปิดเป็น editor tab, เก็บใน localStorage
+- **สถานะ compile ต่อไฟล์** (จุดสีใน Explorer):
+  - ⚪ ยังไม่คอมไพล์
+  - 🟢 คอมไพล์แล้ว ตรงกับโค้ดปัจจุบัน
+  - 🟡 คอมไพล์แล้วแต่แก้โค้ดหลังจากนั้น (ต้องคอมไพล์ใหม่)
+- **Dockable panels** — ลาก panel จัดใหม่ได้ (VS Code-style), maximize/restore, toggle sidebar (Ctrl+B)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## วิธีใช้
 
-## Expanding the Oxlint configuration
+1. เขียนโค้ด Z80 ในช่อง editor
+2. กด **Assemble (C16)** → ดูผลใน panel Output (Console / Listing / Hex), จุดสถานะไฟล์เป็นเขียว
+3. **Export .hex / .lst** โหลดไฟล์ออกได้
+4. กด **Run z80sim** → simulator เปิดข้าง editor
+5. ใน z80sim กด **L** → Enter → พิมพ์ชื่อไฟล์ hex (เช่น `LAB1.H`) → โค้ดโหลดเข้า memory ตาม ORG
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+> ชื่อไฟล์ hex = ชื่อไฟล์ (แปลงเป็น DOS 8.3 ตัวใหญ่) + `.H` เช่น `lab1.asm` → `LAB1.H`
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## รัน local
+
+```bash
+npm install
+npm run dev      # dev server
+npm run build    # build โปรดักชัน (ออกที่ dist/)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Stack
+
+- Vite + React + TypeScript
+- [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) — editor
+- [js-dos / emulators](https://js-dos.com) v8 — DOSBox-WASM (assemble แบบ headless + จำลองกราฟิก)
+- [dockview](https://dockview.dev) — VS Code-style dockable layout
+
+## โครงสร้าง
+
+```
+src/
+├── state/AppState.tsx    ยกสถานะรวม (ไฟล์ / assemble / sim) เป็น context
+├── dosbox/
+│   ├── assembler.ts      รัน C16 headless (dosboxDirect) → hex/listing
+│   └── simulator.ts      รัน z80sim กราฟิก (js-dos Dos()) + scope CSS
+├── panels/               EditorPanel / ConsolePanel / SimulatorPanel
+├── ExplorerSidebar.tsx   sidebar + inline new/rename + สถานะ compile
+├── Dock.tsx              dockview layout
+└── editor/z80language.ts syntax highlight Z80
+
+public/
+├── emulators/            wdosbox.wasm + emulators.js (assemble engine)
+├── jsdos/                js-dos.js/css + wasm (simulator)
+└── micro_processor/      C16.EXE, Z80.TBL, z80sim.exe, ตาราง/ข้อมูล
+```
+
+## เครดิต
+
+- `C16.EXE` — Cross-16 Meta-Assembler, Universal Cross-Assemblers (1987)
+- `z80sim.exe` — Z80 ET-Board Simulator, Dept. of Computer Engineering, Khon Kaen University (1997)
