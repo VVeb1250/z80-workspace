@@ -207,10 +207,16 @@ export async function startSimulator(
     },
   });
 
-  // autoStart can't beat the browser's user-gesture rule: by the time Dos()
-  // runs (after async file fetches) the click that opened the panel has
-  // expired, so js-dos falls back to its "click to start" overlay. Dismiss it
-  // programmatically the moment it appears so the sim starts on its own.
+  // js-dos only auto-starts (dos/bndReady -> autoStart && countDownStart===0
+  // -> bndPlay) on a fresh page load. Two things break that on our panels:
+  //   1. autoStart can't beat the browser's user-gesture rule -- by the time
+  //      Dos() runs (after async file fetches) the click that opened the panel
+  //      has expired, so js-dos falls back to its "click to start" overlay.
+  //   2. js-dos keeps a page-level (Redux) store, so a *second* Dos() after a
+  //      stop() (close tab -> reopen) never re-arms the auto-start path and
+  //      always lands on that overlay.
+  // Either way, click the overlay's play button ourselves the moment it
+  // appears so the sim boots on its own, every time.
   dismissStartOverlay(el);
 
   return {
@@ -222,13 +228,17 @@ export async function startSimulator(
 function dismissStartOverlay(el: HTMLElement) {
   let done = false;
   const click = () => {
-    const overlay = el.querySelector<HTMLElement>(
-      ".emulator-click-to-start-overlay",
-    );
-    if (overlay) {
-      // click the overlay and its icon to be safe
-      overlay.click();
-      el.querySelector<HTMLElement>(".emulator-click-to-start-icon")?.click();
+    // js-dos v8 renders the manual start overlay as an SVG "play" icon with
+    // class `play-button` (the full-size one is `.play-button.w-full`; a
+    // separate `.play-button.w-48` is the unrelated upload icon). Its onClick
+    // dispatches the same bndPlay action auto-start would, so a synthetic click
+    // boots the emulator -- SVGElement has no reliable .click(), so dispatch a
+    // real MouseEvent.
+    const play = el.querySelector<SVGElement>(".play-button.w-full");
+    if (play) {
+      play.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
       done = true;
       return true;
     }
