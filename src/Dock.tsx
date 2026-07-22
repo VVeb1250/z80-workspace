@@ -9,6 +9,7 @@ import "dockview-core/dist/styles/dockview.css";
 import EditorPanel from "./panels/EditorPanel";
 import ConsolePanel from "./panels/ConsolePanel";
 import SimulatorPanel from "./panels/SimulatorPanel";
+import InstructionsPanel from "./panels/InstructionsPanel";
 import { RightHeaderActions } from "./panels/HeaderActions";
 import { PlainTab } from "./panels/PlainTab";
 import { mountOutputPanels } from "./panels/outputPanels";
@@ -31,6 +32,7 @@ const components: any = {
     <ConsolePanel channel={props.params.channel} />
   ),
   simulator: () => <SimulatorPanel />,
+  instructions: () => <InstructionsPanel />,
 };
 
 export default function Dock() {

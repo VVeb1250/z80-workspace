@@ -48,6 +48,7 @@ export const OUTPUT_HEADER = 35;
 
 export const EDITOR_PREFIX = "file:";
 export const editorId = (name: string) => EDITOR_PREFIX + name;
+export const INSTRUCTIONS_PANEL_ID = "docs:z80-instructions";
 
 export interface AppState {
   files: AsmFile[];
@@ -56,6 +57,7 @@ export interface AppState {
   updateSource: (name: string, content: string) => void;
   setActiveFile: (name: string) => void;
   openFile: (name: string) => void;
+  openInstructionReference: () => void;
   createFile: (input: string) => void;
   deleteFile: (name: string) => void;
   commitRename: (oldName: string, input: string) => void;
@@ -164,6 +166,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     },
     [setActiveFile],
   );
+
+  const openInstructionReference = useCallback(() => {
+    const api = dockApiRef.current;
+    if (!api) return;
+    const existing = api.getPanel(INSTRUCTIONS_PANEL_ID);
+    if (existing) {
+      existing.api.setActive();
+      return;
+    }
+    const anyEditor = api.panels.find((panel) =>
+      panel.id.startsWith(EDITOR_PREFIX),
+    );
+    api.addPanel({
+      id: INSTRUCTIONS_PANEL_ID,
+      component: "instructions",
+      title: "Z80 Instructions",
+      position: anyEditor
+        ? { referencePanel: anyEditor.id, direction: "within" }
+        : undefined,
+    });
+  }, []);
 
   const createFile = useCallback(
     (input: string) => {
@@ -387,6 +410,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     updateSource,
     setActiveFile,
     openFile,
+    openInstructionReference,
     createFile,
     deleteFile,
     commitRename,

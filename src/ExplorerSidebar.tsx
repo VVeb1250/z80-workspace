@@ -21,6 +21,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     files,
     activeFile,
     openFile,
+    openInstructionReference,
     createFile,
     commitRename,
     deleteFile,
@@ -178,6 +179,17 @@ export default function ExplorerSidebar({ width }: { width: number }) {
         aria-label="Read-only toolchain files"
         className="filelist tool-files"
       >
+        <li className="tool-doc">
+          <button
+            className="file-open tool-file-open"
+            onClick={openInstructionReference}
+            title="Open Z80 instruction reference"
+            type="button"
+          >
+            <Icon name="book-open" size={14} />
+            <span className="fname">Z80 Instructions</span>
+          </button>
+        </li>
         {TOOL_FILES.map((file) => (
           <li className="muted readonly" key={file}>
             <Icon name="file" size={14} />
