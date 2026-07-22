@@ -8,6 +8,7 @@ import {
   z80Language,
 } from "./editor/z80language";
 import { assemble, type AssembleResult } from "./dosbox/assembler";
+import { startSimulator, type SimulatorHandle } from "./dosbox/simulator";
 import "./App.css";
 
 type OutputTab = "console" | "listing" | "hex";
@@ -17,7 +18,33 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AssembleResult | null>(null);
   const [tab, setTab] = useState<OutputTab>("console");
+  const [simRunning, setSimRunning] = useState(false);
+  const [simBusy, setSimBusy] = useState(false);
   const monacoReady = useRef(false);
+  const simElRef = useRef<HTMLDivElement>(null);
+  const simHandleRef = useRef<SimulatorHandle | null>(null);
+
+  const toggleSimulator = useCallback(async () => {
+    if (simBusy) return;
+    setSimBusy(true);
+    try {
+      if (simRunning) {
+        await simHandleRef.current?.stop();
+        simHandleRef.current = null;
+        setSimRunning(false);
+      } else if (simElRef.current) {
+        setSimRunning(true); // reveal container first so it has size
+        // let the panel lay out before js-dos measures the canvas
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        simHandleRef.current = await startSimulator(simElRef.current);
+      }
+    } catch (e) {
+      setSimRunning(false);
+      alert(`z80sim failed to start: ${(e as Error).message}`);
+    } finally {
+      setSimBusy(false);
+    }
+  }, [simRunning, simBusy]);
 
   const beforeMount = useCallback((monaco: Monaco) => {
     if (monacoReady.current) return;
@@ -89,6 +116,13 @@ export default function App() {
         >
           Export .lst
         </button>
+        <button
+          className={"btn " + (simRunning ? "danger" : "")}
+          onClick={toggleSimulator}
+          disabled={simBusy}
+        >
+          {simBusy ? "…" : simRunning ? "Stop z80sim" : "Run z80sim"}
+        </button>
         <span
           className={
             "status " + (result ? (result.errorCount === 0 ? "ok" : "err") : "")
@@ -134,23 +168,39 @@ export default function App() {
         <PanelResizeHandle className="resize" />
 
         <Panel defaultSize={32} minSize={18} className="pane">
-          <div className="tabbar">
-            {(["console", "listing", "hex"] as OutputTab[]).map((t) => (
-              <button
-                key={t}
-                className={"tab " + (tab === t ? "active" : "")}
-                onClick={() => setTab(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <pre className="output">
-            {tab === "console" &&
-              (result?.stdout || "Press Assemble to run C16.")}
-            {tab === "listing" && (result?.listing || "(no listing yet)")}
-            {tab === "hex" && (result?.hex || "(no hex output yet)")}
-          </pre>
+          <PanelGroup direction="vertical">
+            <Panel
+              defaultSize={simRunning ? 55 : 0}
+              minSize={simRunning ? 25 : 0}
+              className="sim-panel"
+              style={{ display: simRunning ? "flex" : "none" }}
+            >
+              <div className="pane-title">z80sim — ET-Board Simulator</div>
+              <div ref={simElRef} className="sim-wrap" />
+            </Panel>
+
+            {simRunning && <PanelResizeHandle className="resize-h" />}
+
+            <Panel defaultSize={simRunning ? 45 : 100} minSize={18} className="pane">
+              <div className="tabbar">
+                {(["console", "listing", "hex"] as OutputTab[]).map((t) => (
+                  <button
+                    key={t}
+                    className={"tab " + (tab === t ? "active" : "")}
+                    onClick={() => setTab(t)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <pre className="output">
+                {tab === "console" &&
+                  (result?.stdout || "Press Assemble to run C16.")}
+                {tab === "listing" && (result?.listing || "(no listing yet)")}
+                {tab === "hex" && (result?.hex || "(no hex output yet)")}
+              </pre>
+            </Panel>
+          </PanelGroup>
         </Panel>
       </PanelGroup>
     </div>
