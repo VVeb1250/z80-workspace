@@ -16,7 +16,7 @@ export default function ExplorerSidebar() {
     useApp();
 
   return (
-    <aside className="sidebar">
+    <aside className="app-sidebar">
       <div className="section-title">
         <span>Explorer</span>
         <button className="icon-btn" title="New file" onClick={newFile}>

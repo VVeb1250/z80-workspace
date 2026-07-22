@@ -128,16 +128,37 @@ export async function startSimulator(
 }
 
 function dismissStartOverlay(el: HTMLElement) {
-  const deadline = Date.now() + 8000;
-  const tick = () => {
+  let done = false;
+  const click = () => {
     const overlay = el.querySelector<HTMLElement>(
       ".emulator-click-to-start-overlay",
     );
     if (overlay) {
+      // click the overlay and its icon to be safe
       overlay.click();
+      el.querySelector<HTMLElement>(".emulator-click-to-start-icon")?.click();
+      done = true;
+      return true;
+    }
+    return false;
+  };
+
+  // Catch the overlay the instant js-dos inserts it.
+  const observer = new MutationObserver(() => {
+    if (click()) observer.disconnect();
+  });
+  observer.observe(el, { childList: true, subtree: true });
+
+  // Polling fallback (covers overlays already present / observer misses).
+  const deadline = Date.now() + 15000;
+  const poll = () => {
+    if (done) return;
+    if (click()) {
+      observer.disconnect();
       return;
     }
-    if (Date.now() < deadline) requestAnimationFrame(tick);
+    if (Date.now() < deadline) setTimeout(poll, 200);
+    else observer.disconnect();
   };
-  requestAnimationFrame(tick);
+  poll();
 }

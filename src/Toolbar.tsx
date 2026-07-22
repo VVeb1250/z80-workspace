@@ -16,7 +16,7 @@ export default function Toolbar() {
   return (
     <header className="toolbar">
       <button
-        className="icon-btn toggle"
+        className="icon-btn sb-toggle"
         title="Toggle sidebar (Ctrl+B)"
         onClick={toggleSidebar}
       >
