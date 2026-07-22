@@ -31,9 +31,9 @@ export interface AppState {
   updateSource: (name: string, content: string) => void;
   setActiveFile: (name: string) => void;
   openFile: (name: string) => void;
-  newFile: () => void;
+  createFile: (input: string) => void;
   deleteFile: (name: string) => void;
-  renameFile: (name: string) => void;
+  commitRename: (oldName: string, input: string) => void;
   // assemble
   busy: boolean;
   result: AssembleResult | null;
@@ -126,17 +126,23 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [setActiveFile],
   );
 
-  const newFile = useCallback(() => {
-    const input = window.prompt("New file name (base, .asm added):", "prog");
-    if (!input) return;
-    setFiles((prev) => {
-      const name = normalizeName(input, prev);
-      const next = [...prev, { name, content: `; ${name}\n\n                END\n` }];
-      saveFiles(next);
-      queueMicrotask(() => openFile(name));
-      return next;
-    });
-  }, [openFile]);
+  const createFile = useCallback(
+    (input: string) => {
+      const trimmed = input.trim();
+      if (!trimmed) return;
+      setFiles((prev) => {
+        const name = normalizeName(trimmed, prev);
+        const next = [
+          ...prev,
+          { name, content: `; ${name}\n\n                END\n` },
+        ];
+        saveFiles(next);
+        queueMicrotask(() => openFile(name));
+        return next;
+      });
+    },
+    [openFile],
+  );
 
   const deleteFile = useCallback(
     (name: string) => {
@@ -154,27 +160,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [files, activeFile, persist, setActiveFile],
   );
 
-  const renameFile = useCallback(
-    (name: string) => {
-      const input = window.prompt(
-        "Rename to (base):",
-        name.replace(/\.asm$/i, ""),
-      );
-      if (!input) return;
+  const commitRename = useCallback(
+    (oldName: string, input: string) => {
+      const trimmed = input.trim();
+      if (!trimmed) return;
       const newName = normalizeName(
-        input,
-        files.filter((f) => f.name !== name),
+        trimmed,
+        files.filter((f) => f.name !== oldName),
       );
+      if (newName === oldName) return;
       const next = files.map((f) =>
-        f.name === name ? { ...f, name: newName } : f,
+        f.name === oldName ? { ...f, name: newName } : f,
       );
       persist(next);
       const api = dockApiRef.current;
-      const panel = api?.getPanel(editorId(name));
+      const panel = api?.getPanel(editorId(oldName));
       const wasOpen = !!panel;
       if (panel) api?.removePanel(panel);
       if (wasOpen) queueMicrotask(() => openFile(newName));
-      if (activeFile === name) setActiveFile(newName);
+      if (activeFile === oldName) setActiveFile(newName);
     },
     [files, activeFile, persist, setActiveFile, openFile],
   );
@@ -251,9 +255,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     updateSource,
     setActiveFile,
     openFile,
-    newFile,
+    createFile,
     deleteFile,
-    renameFile,
+    commitRename,
     busy,
     result,
     tab,
