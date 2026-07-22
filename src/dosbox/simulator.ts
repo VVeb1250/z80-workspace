@@ -115,8 +115,29 @@ export async function startSimulator(
     },
   });
 
+  // autoStart can't beat the browser's user-gesture rule: by the time Dos()
+  // runs (after async file fetches) the click that opened the panel has
+  // expired, so js-dos falls back to its "click to start" overlay. Dismiss it
+  // programmatically the moment it appears so the sim starts on its own.
+  dismissStartOverlay(el);
+
   return {
     stop: () => props.stop(),
     ci: () => ci,
   };
+}
+
+function dismissStartOverlay(el: HTMLElement) {
+  const deadline = Date.now() + 8000;
+  const tick = () => {
+    const overlay = el.querySelector<HTMLElement>(
+      ".emulator-click-to-start-overlay",
+    );
+    if (overlay) {
+      overlay.click();
+      return;
+    }
+    if (Date.now() < deadline) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
