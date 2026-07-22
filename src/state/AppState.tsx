@@ -21,12 +21,16 @@ import {
 
 export type OutputTab = "console" | "listing" | "hex";
 
+export const EDITOR_PREFIX = "file:";
+export const editorId = (name: string) => EDITOR_PREFIX + name;
+
 export interface AppState {
-  // files
   files: AsmFile[];
-  active: AsmFile;
-  selectFile: (name: string) => void;
-  updateSource: (content: string) => void;
+  activeFile: string;
+  contentOf: (name: string) => string;
+  updateSource: (name: string, content: string) => void;
+  setActiveFile: (name: string) => void;
+  openFile: (name: string) => void;
   newFile: () => void;
   deleteFile: (name: string) => void;
   renameFile: (name: string) => void;
@@ -39,8 +43,10 @@ export interface AppState {
   statusText: string;
   download: (name: string, text: string) => void;
   baseName: string;
-  // dock + simulator
+  // shell
   dockApiRef: React.MutableRefObject<DockviewApi | null>;
+  sidebarOpen: boolean;
+  toggleSidebar: () => void;
   simRunning: boolean;
   setSimRunning: (v: boolean) => void;
   toggleSimulator: () => void;
@@ -56,53 +62,81 @@ export function useApp(): AppState {
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [files, setFiles] = useState<AsmFile[]>(() => loadFiles());
-  const [activeName, setActiveName] = useState<string>(
+  const [activeFile, setActiveFileState] = useState<string>(
     () => loadActive() ?? loadFiles()[0].name,
   );
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AssembleResult | null>(null);
   const [tab, setTab] = useState<OutputTab>("console");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
   const dockApiRef = useRef<DockviewApi | null>(null);
 
   const active = useMemo(
-    () => files.find((f) => f.name === activeName) ?? files[0],
-    [files, activeName],
+    () => files.find((f) => f.name === activeFile) ?? files[0],
+    [files, activeFile],
   );
 
-  const persist = useCallback((next: AsmFile[], nextActive?: string) => {
+  const contentOf = useCallback(
+    (name: string) => files.find((f) => f.name === name)?.content ?? "",
+    [files],
+  );
+
+  const persist = useCallback((next: AsmFile[]) => {
     setFiles(next);
     saveFiles(next);
-    if (nextActive) {
-      setActiveName(nextActive);
-      saveActive(nextActive);
-    }
   }, []);
 
-  const updateSource = useCallback(
-    (content: string) => {
-      setFiles((prev) => {
-        const next = prev.map((f) =>
-          f.name === active.name ? { ...f, content } : f,
-        );
-        saveFiles(next);
-        return next;
-      });
-    },
-    [active],
-  );
-
-  const selectFile = useCallback((name: string) => {
-    setActiveName(name);
+  const setActiveFile = useCallback((name: string) => {
+    setActiveFileState(name);
     saveActive(name);
   }, []);
+
+  const updateSource = useCallback((name: string, content: string) => {
+    setFiles((prev) => {
+      const next = prev.map((f) => (f.name === name ? { ...f, content } : f));
+      saveFiles(next);
+      return next;
+    });
+  }, []);
+
+  // Open a file as an editor tab (or focus it if already open).
+  const openFile = useCallback(
+    (name: string) => {
+      setActiveFile(name);
+      const api = dockApiRef.current;
+      if (!api) return;
+      const id = editorId(name);
+      const existing = api.getPanel(id);
+      if (existing) {
+        existing.api.setActive();
+        return;
+      }
+      const anyEditor = api.panels.find((p) => p.id.startsWith(EDITOR_PREFIX));
+      api.addPanel({
+        id,
+        component: "editor",
+        title: name,
+        params: { name },
+        position: anyEditor
+          ? { referencePanel: anyEditor.id, direction: "within" }
+          : undefined,
+      });
+    },
+    [setActiveFile],
+  );
 
   const newFile = useCallback(() => {
     const input = window.prompt("New file name (base, .asm added):", "prog");
     if (!input) return;
-    const name = normalizeName(input, files);
-    persist([...files, { name, content: `; ${name}\n\n                END\n` }], name);
-  }, [files, persist]);
+    setFiles((prev) => {
+      const name = normalizeName(input, prev);
+      const next = [...prev, { name, content: `; ${name}\n\n                END\n` }];
+      saveFiles(next);
+      queueMicrotask(() => openFile(name));
+      return next;
+    });
+  }, [openFile]);
 
   const deleteFile = useCallback(
     (name: string) => {
@@ -112,9 +146,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }
       if (!window.confirm(`Delete ${name}?`)) return;
       const next = files.filter((f) => f.name !== name);
-      persist(next, name === active.name ? next[0].name : active.name);
+      persist(next);
+      const panel = dockApiRef.current?.getPanel(editorId(name));
+      if (panel) dockApiRef.current?.removePanel(panel);
+      if (activeFile === name) setActiveFile(next[0].name);
     },
-    [files, active, persist],
+    [files, activeFile, persist, setActiveFile],
   );
 
   const renameFile = useCallback(
@@ -131,9 +168,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const next = files.map((f) =>
         f.name === name ? { ...f, name: newName } : f,
       );
-      persist(next, active.name === name ? newName : active.name);
+      persist(next);
+      const api = dockApiRef.current;
+      const panel = api?.getPanel(editorId(name));
+      const wasOpen = !!panel;
+      if (panel) api?.removePanel(panel);
+      if (wasOpen) queueMicrotask(() => openFile(newName));
+      if (activeFile === name) setActiveFile(newName);
     },
-    [files, active, persist],
+    [files, activeFile, persist, setActiveFile, openFile],
   );
 
   const onAssemble = useCallback(async () => {
@@ -167,23 +210,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     URL.revokeObjectURL(url);
   }, []);
 
+  const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
+
   const toggleSimulator = useCallback(() => {
     const api = dockApiRef.current;
     if (!api) return;
     const existing = api.getPanel("simulator");
     if (existing) {
-      api.removePanel(existing); // unmount → SimulatorPanel cleanup stops sim
-    } else {
-      const ref = api.getPanel("editor") ?? api.panels[0];
-      api.addPanel({
-        id: "simulator",
-        component: "simulator",
-        title: "z80sim",
-        position: ref
-          ? { referencePanel: ref.id, direction: "right" }
-          : undefined,
-      });
+      api.removePanel(existing);
+      return;
     }
+    // Dock z80sim beside the editor (its own big, readable half) — not with
+    // the small bottom Output panel.
+    const anyEditor = api.panels.find((p) => p.id.startsWith(EDITOR_PREFIX));
+    api.addPanel({
+      id: "simulator",
+      component: "simulator",
+      title: "z80sim",
+      position: anyEditor
+        ? { referencePanel: anyEditor.id, direction: "right" }
+        : undefined,
+    });
   }, []);
 
   const baseName = dosBaseName(active.name).toLowerCase();
@@ -199,9 +246,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const value: AppState = {
     files,
-    active,
-    selectFile,
+    activeFile,
+    contentOf,
     updateSource,
+    setActiveFile,
+    openFile,
     newFile,
     deleteFile,
     renameFile,
@@ -214,6 +263,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     download,
     baseName,
     dockApiRef,
+    sidebarOpen,
+    toggleSidebar,
     simRunning,
     setSimRunning,
     toggleSimulator,

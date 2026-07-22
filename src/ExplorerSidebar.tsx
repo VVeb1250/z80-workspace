@@ -1,4 +1,4 @@
-import { useApp } from "../state/AppState";
+import { useApp } from "./state/AppState";
 
 const TOOL_FILES = [
   "C16.EXE",
@@ -9,14 +9,16 @@ const TOOL_FILES = [
   "z80sim.exe",
 ];
 
-export default function ExplorerPanel() {
-  const { files, active, selectFile, newFile, renameFile, deleteFile } =
+// Fixed left sidebar (outside dockview), like the VS Code / JetBrains project
+// pane: not a closeable tab, collapsible via the toolbar toggle.
+export default function ExplorerSidebar() {
+  const { files, activeFile, openFile, newFile, renameFile, deleteFile } =
     useApp();
 
   return (
-    <div className="panel-fill explorer">
+    <aside className="sidebar">
       <div className="section-title">
-        <span>Files</span>
+        <span>Explorer</span>
         <button className="icon-btn" title="New file" onClick={newFile}>
           +
         </button>
@@ -25,8 +27,8 @@ export default function ExplorerPanel() {
         {files.map((f) => (
           <li
             key={f.name}
-            className={f.name === active.name ? "active" : ""}
-            onClick={() => selectFile(f.name)}
+            className={f.name === activeFile ? "active" : ""}
+            onClick={() => openFile(f.name)}
           >
             <span className="fname">{f.name}</span>
             <span className="file-actions">
@@ -62,6 +64,6 @@ export default function ExplorerPanel() {
           </li>
         ))}
       </ul>
-    </div>
+    </aside>
   );
 }

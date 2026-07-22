@@ -10,10 +10,18 @@ export default function Toolbar() {
     statusText,
     simRunning,
     toggleSimulator,
+    toggleSidebar,
   } = useApp();
 
   return (
     <header className="toolbar">
+      <button
+        className="icon-btn toggle"
+        title="Toggle sidebar (Ctrl+B)"
+        onClick={toggleSidebar}
+      >
+        ☰
+      </button>
       <span className="brand">Z80 Workspace</span>
       <button className="tbtn primary" onClick={onAssemble} disabled={busy}>
         {busy ? "…" : "Assemble (C16)"}
