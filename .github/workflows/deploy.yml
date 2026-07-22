@@ -22,7 +22,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      # npm install (not ci): the Windows-generated lock omits Linux-only
+      # optional native deps (@emnapi/*), which would make `npm ci` fail.
+      - run: npm install
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
