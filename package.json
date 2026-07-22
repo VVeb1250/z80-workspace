@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "dockview": "^7.0.3",
+    "dockview-react": "^7.0.3",
     "emulators": "^8.4.1",
     "js-dos": "^8.4.1",
     "react": "^19.2.7",

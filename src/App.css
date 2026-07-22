@@ -32,6 +32,83 @@ body {
   overflow: hidden;
 }
 
+/* Dockview host */
+.dock-host { flex: 1 1 auto; min-height: 0; position: relative; }
+.dock { width: 100%; height: 100%; }
+
+/* Content that fills a dockview panel */
+.panel-fill {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+.panel-fill.sim-wrap { background: #000; position: relative; }
+.panel-fill.sim-wrap > * { width: 100%; height: 100%; }
+
+/* dockview per-group maximize button */
+.dv-actions { display: flex; align-items: center; height: 100%; padding: 0 4px; }
+.dv-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.dv-action-btn:hover { color: var(--fg); background: rgba(255, 255, 255, 0.08); }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+/* Run/Stop z80sim button — visibly changes state */
+.sim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.sim-btn .sim-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: 0 0 auto;
+}
+.sim-btn.idle .sim-dot { background: #6a6a6a; }
+.sim-btn.running {
+  background: #6b2020;
+  border-color: #c0392b;
+  color: #ffdede;
+  padding: 4px 16px;
+  box-shadow: 0 0 0 1px #c0392b inset;
+}
+.sim-btn.running .sim-dot {
+  background: #ff5b5b;
+  animation: sim-pulse 1.1s ease-in-out infinite;
+}
+.sim-btn.running:hover { background: #8a2a2a; }
+@keyframes sim-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 91, 91, 0.7); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 91, 91, 0); }
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
