@@ -124,7 +124,7 @@ body {
   margin-right: 8px;
   letter-spacing: 0.3px;
 }
-.btn {
+.tbtn {
   background: var(--bg-alt);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -133,12 +133,12 @@ body {
   cursor: pointer;
   font-size: 13px;
 }
-.btn:hover:not(:disabled) { background: #2a2d2e; }
-.btn.primary { background: var(--accent); border-color: var(--accent); }
-.btn.primary:hover:not(:disabled) { background: var(--accent-hi); }
-.btn.danger { background: #6b2020; border-color: #8a2a2a; }
-.btn.danger:hover:not(:disabled) { background: #8a2a2a; }
-.btn:disabled { opacity: 0.45; cursor: default; }
+.tbtn:hover:not(:disabled) { background: #2a2d2e; }
+.tbtn.primary { background: var(--accent); border-color: var(--accent); }
+.tbtn.primary:hover:not(:disabled) { background: var(--accent-hi); }
+.tbtn.danger { background: #6b2020; border-color: #8a2a2a; }
+.tbtn.danger:hover:not(:disabled) { background: #8a2a2a; }
+.tbtn:disabled { opacity: 0.45; cursor: default; }
 .status { margin-left: auto; font-size: 12px; color: var(--fg-dim); }
 .status.ok { color: var(--ok); }
 .status.err { color: var(--err); }
@@ -233,7 +233,7 @@ body {
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
 }
-.tab {
+.otab {
   background: transparent;
   color: var(--fg-dim);
   border: none;
@@ -243,7 +243,7 @@ body {
   font-size: 12px;
   text-transform: capitalize;
 }
-.tab.active { background: var(--bg); color: var(--fg); }
+.otab.active { background: var(--bg); color: var(--fg); }
 .output {
   flex: 1 1 auto;
   margin: 0;

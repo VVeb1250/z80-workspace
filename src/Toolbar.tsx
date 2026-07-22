@@ -15,25 +15,25 @@ export default function Toolbar() {
   return (
     <header className="toolbar">
       <span className="brand">Z80 Workspace</span>
-      <button className="btn primary" onClick={onAssemble} disabled={busy}>
+      <button className="tbtn primary" onClick={onAssemble} disabled={busy}>
         {busy ? "…" : "Assemble (C16)"}
       </button>
       <button
-        className="btn"
+        className="tbtn"
         disabled={!result?.hex}
         onClick={() => result && download(`${baseName}.hex`, result.hex)}
       >
         Export .hex
       </button>
       <button
-        className="btn"
+        className="tbtn"
         disabled={!result?.listing}
         onClick={() => result && download(`${baseName}.lst`, result.listing)}
       >
         Export .lst
       </button>
       <button
-        className={"btn sim-btn " + (simRunning ? "running" : "idle")}
+        className={"tbtn sim-btn " + (simRunning ? "running" : "idle")}
         onClick={toggleSimulator}
       >
         <span className="sim-dot" />

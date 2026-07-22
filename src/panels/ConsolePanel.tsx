@@ -9,7 +9,7 @@ export default function ConsolePanel() {
         {(["console", "listing", "hex"] as OutputTab[]).map((t) => (
           <button
             key={t}
-            className={"tab " + (tab === t ? "active" : "")}
+            className={"otab " + (tab === t ? "active" : "")}
             onClick={() => setTab(t)}
           >
             {t}
