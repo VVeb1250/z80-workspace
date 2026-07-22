@@ -5,7 +5,7 @@ import type { languages } from "monaco-editor";
 
 export const Z80_LANGUAGE_ID = "z80asm";
 
-const MNEMONICS = [
+export const Z80_MNEMONICS = [
   "adc","add","and","bit","call","ccf","cp","cpd","cpdr","cpi","cpir","cpl",
   "daa","dec","di","djnz","ei","ex","exx","halt","im","in","inc","ind","indr",
   "ini","inir","jp","jr","ld","ldd","lddr","ldi","ldir","neg","nop","or","otdr",
@@ -14,21 +14,21 @@ const MNEMONICS = [
   "sra","srl","sll","sub","xor",
 ];
 
-const REGISTERS = [
+export const Z80_REGISTERS = [
   "a","b","c","d","e","h","l","i","r","af","bc","de","hl","ix","iy","sp","pc",
   "ixh","ixl","iyh","iyl","nz","z","nc","po","pe","p","m",
 ];
 
-const DIRECTIVES = [
+export const Z80_DIRECTIVES = [
   "org","equ","db","dw","ds","defb","defw","defs","end","include","if","else",
   "endif","macro","endm","cpu","hof","word",
 ];
 
 export const z80Language: languages.IMonarchLanguage = {
   ignoreCase: true,
-  mnemonics: MNEMONICS,
-  registers: REGISTERS,
-  directives: DIRECTIVES,
+  mnemonics: Z80_MNEMONICS,
+  registers: Z80_REGISTERS,
+  directives: Z80_DIRECTIVES,
   tokenizer: {
     root: [
       [/;.*$/, "comment"],
@@ -56,11 +56,16 @@ export const z80Language: languages.IMonarchLanguage = {
 export const z80Config: languages.LanguageConfiguration = {
   comments: { lineComment: ";" },
   brackets: [["(", ")"]],
+  wordPattern: /(?:-?\d*\.\d\w*)|(?:[A-Za-z_.$?][\w.$?]*)/g,
   autoClosingPairs: [
     { open: "(", close: ")" },
     { open: '"', close: '"' },
     { open: "'", close: "'" },
   ],
+  indentationRules: {
+    increaseIndentPattern: /^\s*(?:[A-Za-z_.$][\w.$]*:\s*)?(?:IF|MACRO)\b/i,
+    decreaseIndentPattern: /^\s*(?:ELSE|ENDIF|ENDM)\b/i,
+  },
 };
 
 export const SAMPLE_SOURCE = `; lab1.asm - Z80 sample (Cross-16 syntax)

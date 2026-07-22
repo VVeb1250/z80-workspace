@@ -274,6 +274,8 @@ kbd {
   color: var(--fg);
   font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 12px;
+  max-height: calc(100vh - 50px);
+  overflow-y: auto;
   position: fixed;
   width: min(300px, calc(100vw - 16px));
   z-index: 1000;
@@ -349,6 +351,21 @@ kbd {
 .setting-toggle {
   cursor: pointer;
   user-select: none;
+}
+
+.setting-toggle-detailed { min-height: 44px; }
+
+.setting-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.setting-toggle-copy small {
+  color: var(--fg-dim);
+  font-size: 10px;
+  line-height: 1.35;
+  text-wrap: pretty;
 }
 
 .setting-toggle input {

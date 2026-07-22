@@ -22,6 +22,40 @@ interface FontSizeInputProps {
   value: number;
 }
 
+interface ToggleSettingProps {
+  checked: boolean;
+  description?: string;
+  id: string;
+  label: string;
+  onChange: (checked: boolean) => void;
+}
+
+function ToggleSetting({
+  checked,
+  description,
+  id,
+  label,
+  onChange,
+}: ToggleSettingProps) {
+  return (
+    <label
+      className={`setting-toggle${description ? " setting-toggle-detailed" : ""}`}
+      htmlFor={id}
+    >
+      <span className="setting-toggle-copy">
+        <span>{label}</span>
+        {description && <small>{description}</small>}
+      </span>
+      <input
+        checked={checked}
+        id={id}
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+    </label>
+  );
+}
+
 function FontSizeInput({ id, inputRef, onCommit, value }: FontSizeInputProps) {
   const [draft, setDraft] = useState(String(value));
 
@@ -80,9 +114,15 @@ export default function SettingsMenu() {
   const titleId = useId();
   const editorFontId = useId();
   const tabSizeId = useId();
+  const insertSpacesId = useId();
   const outputFontId = useId();
   const wordWrapId = useId();
   const minimapId = useId();
+  const quickSuggestionsId = useId();
+  const parameterHintsId = useId();
+  const hoverInformationId = useId();
+  const renderWhitespaceId = useId();
+  const tabAcceptsSuggestionId = useId();
 
   const close = (restoreFocus = false) => {
     setOpen(false);
@@ -198,28 +238,73 @@ export default function SettingsMenu() {
                   ))}
                 </select>
               </div>
-              <label className="setting-toggle" htmlFor={wordWrapId}>
-                <span>Word wrap</span>
-                <input
-                  checked={settings.wordWrap}
-                  id={wordWrapId}
-                  onChange={(event) =>
-                    updateSettings({ wordWrap: event.target.checked })
-                  }
-                  type="checkbox"
-                />
-              </label>
-              <label className="setting-toggle" htmlFor={minimapId}>
-                <span>Minimap</span>
-                <input
-                  checked={settings.minimap}
-                  id={minimapId}
-                  onChange={(event) =>
-                    updateSettings({ minimap: event.target.checked })
-                  }
-                  type="checkbox"
-                />
-              </label>
+              <ToggleSetting
+                checked={settings.insertSpaces}
+                description="Off uses tab characters"
+                id={insertSpacesId}
+                label="Insert spaces"
+                onChange={(insertSpaces) => updateSettings({ insertSpaces })}
+              />
+              <ToggleSetting
+                checked={settings.wordWrap}
+                id={wordWrapId}
+                label="Word wrap"
+                onChange={(wordWrap) => updateSettings({ wordWrap })}
+              />
+              <ToggleSetting
+                checked={settings.minimap}
+                id={minimapId}
+                label="Minimap"
+                onChange={(minimap) => updateSettings({ minimap })}
+              />
+            </section>
+
+            <section
+              aria-labelledby={`${titleId}-assistance`}
+              className="settings-section"
+            >
+              <h3 id={`${titleId}-assistance`}>Editor assistance</h3>
+              <ToggleSetting
+                checked={settings.quickSuggestions}
+                id={quickSuggestionsId}
+                label="Suggestions while typing"
+                onChange={(quickSuggestions) =>
+                  updateSettings({ quickSuggestions })
+                }
+              />
+              <ToggleSetting
+                checked={settings.tabAcceptsSuggestion}
+                description="Accept once; the next Tab indents"
+                id={tabAcceptsSuggestionId}
+                label="Tab accepts suggestion"
+                onChange={(tabAcceptsSuggestion) =>
+                  updateSettings({ tabAcceptsSuggestion })
+                }
+              />
+              <ToggleSetting
+                checked={settings.parameterHints}
+                id={parameterHintsId}
+                label="Parameter hints"
+                onChange={(parameterHints) =>
+                  updateSettings({ parameterHints })
+                }
+              />
+              <ToggleSetting
+                checked={settings.hoverInformation}
+                id={hoverInformationId}
+                label="Hover information"
+                onChange={(hoverInformation) =>
+                  updateSettings({ hoverInformation })
+                }
+              />
+              <ToggleSetting
+                checked={settings.renderWhitespace}
+                id={renderWhitespaceId}
+                label="Show whitespace"
+                onChange={(renderWhitespace) =>
+                  updateSettings({ renderWhitespace })
+                }
+              />
             </section>
 
             <section aria-labelledby={`${titleId}-output`} className="settings-section">

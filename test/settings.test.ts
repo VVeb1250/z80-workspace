@@ -13,15 +13,27 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       editorFontSize: 16,
       outputFontSize: 14,
       tabSize: 8,
+      insertSpaces: false,
       wordWrap: true,
       minimap: true,
+      quickSuggestions: false,
+      parameterHints: false,
+      hoverInformation: false,
+      renderWhitespace: true,
+      tabAcceptsSuggestion: true,
     }),
     {
       editorFontSize: 16,
       outputFontSize: 14,
       tabSize: 8,
+      insertSpaces: false,
       wordWrap: true,
       minimap: true,
+      quickSuggestions: false,
+      parameterHints: false,
+      hoverInformation: false,
+      renderWhitespace: true,
+      tabAcceptsSuggestion: true,
     },
   );
 
@@ -29,6 +41,16 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
     normalizeWorkspaceSettings({ editorFontSize: 99, tabSize: 3 }),
     DEFAULT_WORKSPACE_SETTINGS,
   );
+});
+
+test("keeps Tab suggestion acceptance disabled by default", () => {
+  assert.equal(DEFAULT_WORKSPACE_SETTINGS.tabAcceptsSuggestion, false);
+  assert.equal(normalizeWorkspaceSettings({}).tabAcceptsSuggestion, false);
+});
+
+test("uses spaces by default but supports real tab characters", () => {
+  assert.equal(DEFAULT_WORKSPACE_SETTINGS.insertSpaces, true);
+  assert.equal(normalizeWorkspaceSettings({ insertSpaces: false }).insertSpaces, false);
 });
 
 test("accepts custom font sizes within the supported range", () => {

@@ -1,14 +1,9 @@
-import { useCallback, useRef } from "react";
-import Editor, { type Monaco } from "@monaco-editor/react";
+import { useCallback, useEffect, useRef } from "react";
+import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { IDockviewPanelProps } from "dockview-react";
-import {
-  Z80_LANGUAGE_ID,
-  z80Config,
-  z80Language,
-} from "../editor/z80language";
+import { Z80_LANGUAGE_ID } from "../editor/z80language";
+import { registerZ80LanguageSupport } from "../editor/z80Support";
 import { useApp } from "../state/AppState";
-
-let languageRegistered = false;
 
 // Each editor tab is bound to one file, passed via dockview panel params.
 export default function EditorPanel(
@@ -16,16 +11,62 @@ export default function EditorPanel(
 ) {
   const name = props.params.name;
   const { contentOf, updateSource, setActiveFile, settings } = useApp();
-  const registered = useRef(languageRegistered);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const indentationSettingsRef = useRef({
+    insertSpaces: settings.insertSpaces,
+    tabSize: settings.tabSize,
+  });
+  indentationSettingsRef.current = {
+    insertSpaces: settings.insertSpaces,
+    tabSize: settings.tabSize,
+  };
+  const tabAcceptsSuggestionRef = useRef(settings.tabAcceptsSuggestion);
+  tabAcceptsSuggestionRef.current = settings.tabAcceptsSuggestion;
+
+  useEffect(() => {
+    editorRef.current?.getModel()?.updateOptions({
+      insertSpaces: settings.insertSpaces,
+      tabSize: settings.tabSize,
+    });
+  }, [settings.insertSpaces, settings.tabSize]);
 
   const beforeMount = useCallback((monaco: Monaco) => {
-    if (!registered.current) {
-      registered.current = true;
-      languageRegistered = true;
-      monaco.languages.register({ id: Z80_LANGUAGE_ID });
-      monaco.languages.setMonarchTokensProvider(Z80_LANGUAGE_ID, z80Language);
-      monaco.languages.setLanguageConfiguration(Z80_LANGUAGE_ID, z80Config);
-    }
+    registerZ80LanguageSupport(monaco);
+  }, []);
+
+  const onMount = useCallback<OnMount>((editor, monaco) => {
+    editorRef.current = editor;
+    editor.getModel()?.updateOptions(indentationSettingsRef.current);
+
+    const runIndentCommand = (command: "tab" | "outdent") => {
+      editor.trigger("z80-indent", "hideSuggestWidget", null);
+      editor.trigger("z80-indent", command, null);
+    };
+
+    editor.addAction({
+      id: "z80-indent-with-tab",
+      label: "Indent with Tab",
+      keybindings: [monaco.KeyCode.Tab],
+      precondition: "editorTextFocus && !editorReadonly",
+      run: () => {
+        const suggestionVisible = Boolean(
+          editor.getDomNode()?.querySelector(".suggest-widget.visible"),
+        );
+        if (tabAcceptsSuggestionRef.current && suggestionVisible) {
+          editor.trigger("z80-tab-suggestion", "acceptSelectedSuggestion", null);
+          editor.trigger("z80-tab-suggestion", "hideSuggestWidget", null);
+          return;
+        }
+        runIndentCommand("tab");
+      },
+    });
+    editor.addAction({
+      id: "z80-outdent-with-shift-tab",
+      label: "Outdent with Shift+Tab",
+      keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.Tab],
+      precondition: "editorTextFocus && !editorReadonly",
+      run: () => runIndentCommand("outdent"),
+    });
   }, []);
 
   return (
@@ -37,6 +78,7 @@ export default function EditorPanel(
         value={contentOf(name)}
         onChange={(v) => updateSource(name, v ?? "")}
         beforeMount={beforeMount}
+        onMount={onMount}
         options={{
           fontFamily: 'Consolas, "Courier New", monospace',
           fontSize: settings.editorFontSize,
@@ -47,9 +89,23 @@ export default function EditorPanel(
           smoothScrolling: true,
           scrollBeyondLastLine: false,
           automaticLayout: true,
+          autoIndent: "full",
           tabSize: settings.tabSize,
-          insertSpaces: true,
+          insertSpaces: settings.insertSpaces,
           detectIndentation: false,
+          useTabStops: true,
+          tabCompletion: "off",
+          tabFocusMode: false,
+          quickSuggestionsDelay: 80,
+          acceptSuggestionOnEnter: "smart",
+          wordBasedSuggestions: "off",
+          parameterHints: { enabled: settings.parameterHints },
+          hover: { enabled: settings.hoverInformation ? "on" : "off" },
+          renderWhitespace: settings.renderWhitespace ? "all" : "none",
+          quickSuggestions: settings.quickSuggestions
+            ? { other: true, comments: false, strings: false }
+            : false,
+          suggestOnTriggerCharacters: settings.quickSuggestions,
           wordWrap: settings.wordWrap ? "on" : "off",
         }}
       />

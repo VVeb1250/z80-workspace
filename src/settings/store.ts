@@ -1,21 +1,33 @@
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 72;
-export const TAB_SIZES = [2, 4, 8] as const;
+export const TAB_SIZES = [2, 4, 6, 8] as const;
 
 export interface WorkspaceSettings {
   editorFontSize: number;
   outputFontSize: number;
   tabSize: number;
+  insertSpaces: boolean;
   wordWrap: boolean;
   minimap: boolean;
+  quickSuggestions: boolean;
+  parameterHints: boolean;
+  hoverInformation: boolean;
+  renderWhitespace: boolean;
+  tabAcceptsSuggestion: boolean;
 }
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   editorFontSize: 13,
   outputFontSize: 13,
   tabSize: 4,
+  insertSpaces: true,
   wordWrap: false,
   minimap: false,
+  quickSuggestions: true,
+  parameterHints: true,
+  hoverInformation: true,
+  renderWhitespace: false,
+  tabAcceptsSuggestion: false,
 };
 
 const STORAGE_KEY = "z80ws.settings.v1";
@@ -46,6 +58,10 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
     tabSize: isAllowedNumber(input.tabSize, TAB_SIZES)
       ? input.tabSize
       : DEFAULT_WORKSPACE_SETTINGS.tabSize,
+    insertSpaces:
+      typeof input.insertSpaces === "boolean"
+        ? input.insertSpaces
+        : DEFAULT_WORKSPACE_SETTINGS.insertSpaces,
     wordWrap:
       typeof input.wordWrap === "boolean"
         ? input.wordWrap
@@ -54,6 +70,26 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
       typeof input.minimap === "boolean"
         ? input.minimap
         : DEFAULT_WORKSPACE_SETTINGS.minimap,
+    quickSuggestions:
+      typeof input.quickSuggestions === "boolean"
+        ? input.quickSuggestions
+        : DEFAULT_WORKSPACE_SETTINGS.quickSuggestions,
+    parameterHints:
+      typeof input.parameterHints === "boolean"
+        ? input.parameterHints
+        : DEFAULT_WORKSPACE_SETTINGS.parameterHints,
+    hoverInformation:
+      typeof input.hoverInformation === "boolean"
+        ? input.hoverInformation
+        : DEFAULT_WORKSPACE_SETTINGS.hoverInformation,
+    renderWhitespace:
+      typeof input.renderWhitespace === "boolean"
+        ? input.renderWhitespace
+        : DEFAULT_WORKSPACE_SETTINGS.renderWhitespace,
+    tabAcceptsSuggestion:
+      typeof input.tabAcceptsSuggestion === "boolean"
+        ? input.tabAcceptsSuggestion
+        : DEFAULT_WORKSPACE_SETTINGS.tabAcceptsSuggestion,
   };
 }
 
