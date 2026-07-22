@@ -162,18 +162,25 @@ export interface SimulatorHandle {
   ci: () => CommandInterface | null;
 }
 
-/** Boot z80sim.exe into the given container element. */
+/**
+ * Boot z80sim.exe into the given container element. `extraFiles` (e.g. compiled
+ * .h hex files) are placed on C: so the user can Load them directly.
+ */
 export async function startSimulator(
   el: HTMLElement,
+  extraFiles: { path: string; contents: Uint8Array }[] = [],
 ): Promise<SimulatorHandle> {
   const Dos = await loadJsDos();
 
-  const initFs = await Promise.all(
-    SIM_FILES.map(async (f) => ({
-      path: f,
-      contents: await fetchBin("micro_processor/" + f),
-    })),
-  );
+  const initFs = [
+    ...(await Promise.all(
+      SIM_FILES.map(async (f) => ({
+        path: f,
+        contents: await fetchBin("micro_processor/" + f),
+      })),
+    )),
+    ...extraFiles,
+  ];
 
   const dosboxConf = [
     "[sdl]",

@@ -9,7 +9,9 @@ import {
 } from "react";
 import type { DockviewApi } from "dockview-react";
 import { assemble, type AssembleResult } from "../dosbox/assembler";
+import type { SimulatorHandle } from "../dosbox/simulator";
 import {
+  compileStatus,
   dosBaseName,
   loadActive,
   loadFiles,
@@ -17,7 +19,12 @@ import {
   saveActive,
   saveFiles,
   type AsmFile,
+  type CompileStatus,
 } from "../files/store";
+
+/** DOS 8.3 hex filename z80sim's Load expects, e.g. LAB1.H */
+export const hexName = (displayName: string) =>
+  dosBaseName(displayName) + ".H";
 
 export type OutputTab = "console" | "listing" | "hex";
 
@@ -34,6 +41,9 @@ export interface AppState {
   createFile: (input: string) => void;
   deleteFile: (name: string) => void;
   commitRename: (oldName: string, input: string) => void;
+  statusOf: (name: string) => CompileStatus;
+  /** Compiled .h files (DOS name + bytes) to preload into z80sim. */
+  compiledHexFiles: () => { path: string; contents: Uint8Array }[];
   // assemble
   busy: boolean;
   result: AssembleResult | null;
@@ -45,6 +55,7 @@ export interface AppState {
   baseName: string;
   // shell
   dockApiRef: React.MutableRefObject<DockviewApi | null>;
+  simHandleRef: React.MutableRefObject<SimulatorHandle | null>;
   sidebarOpen: boolean;
   toggleSidebar: () => void;
   simRunning: boolean;
@@ -71,6 +82,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
   const dockApiRef = useRef<DockviewApi | null>(null);
+  const simHandleRef = useRef<SimulatorHandle | null>(null);
 
   const active = useMemo(
     () => files.find((f) => f.name === activeFile) ?? files[0],
@@ -187,10 +199,33 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setBusy(true);
     setResult(null);
     setTab("console");
+    const fileName = active.name;
+    const sourceAtCompile = active.content;
     try {
-      const r = await assemble(active.content, dosBaseName(active.name));
+      const r = await assemble(sourceAtCompile, dosBaseName(fileName));
       setResult(r);
       setTab(r.listing ? "listing" : "console");
+      if (r.hex) {
+        // Persist the compiled artifact against this file.
+        setFiles((prev) => {
+          const next = prev.map((f) =>
+            f.name === fileName
+              ? { ...f, compiled: { hex: r.hex, lst: r.listing, sourceAtCompile } }
+              : f,
+          );
+          saveFiles(next);
+          return next;
+        });
+        // If z80sim is already running, drop the fresh .h into its FS so the
+        // user can Load it immediately (L -> Enter -> <name>.h).
+        const ci = simHandleRef.current?.ci();
+        if (ci) {
+          void ci.fsWriteFile(
+            hexName(fileName),
+            new TextEncoder().encode(r.hex),
+          );
+        }
+      }
     } catch (e) {
       setResult({
         ok: false,
@@ -213,6 +248,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  const statusOf = useCallback(
+    (name: string): CompileStatus => {
+      const f = files.find((x) => x.name === name);
+      return f ? compileStatus(f) : "none";
+    },
+    [files],
+  );
+
+  const compiledHexFiles = useCallback(
+    () =>
+      files
+        .filter((f) => f.compiled?.hex)
+        .map((f) => ({
+          path: hexName(f.name),
+          contents: new TextEncoder().encode(f.compiled!.hex),
+        })),
+    [files],
+  );
 
   const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
 
@@ -258,6 +312,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     createFile,
     deleteFile,
     commitRename,
+    statusOf,
+    compiledHexFiles,
     busy,
     result,
     tab,
@@ -267,6 +323,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     download,
     baseName,
     dockApiRef,
+    simHandleRef,
     sidebarOpen,
     toggleSidebar,
     simRunning,

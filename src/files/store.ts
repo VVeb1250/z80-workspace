@@ -4,9 +4,23 @@
 
 import { SAMPLE_SOURCE } from "../editor/z80language";
 
+export interface CompiledArtifact {
+  hex: string; // Intel HEX (C16 -H output) — loadable by z80sim's Load menu
+  lst: string; // listing
+  sourceAtCompile: string; // source snapshot when compiled (for staleness)
+}
+
 export interface AsmFile {
   name: string; // display name, e.g. "lab1.asm"
   content: string;
+  compiled?: CompiledArtifact;
+}
+
+export type CompileStatus = "none" | "fresh" | "stale";
+
+export function compileStatus(f: AsmFile): CompileStatus {
+  if (!f.compiled) return "none";
+  return f.compiled.sourceAtCompile === f.content ? "fresh" : "stale";
 }
 
 const KEY = "z80ws.files.v1";

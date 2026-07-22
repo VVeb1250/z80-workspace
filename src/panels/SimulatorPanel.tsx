@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
-import { startSimulator, type SimulatorHandle } from "../dosbox/simulator";
+import { startSimulator } from "../dosbox/simulator";
 import { useApp } from "../state/AppState";
 
 // The panel's existence == the simulator running. Mounting starts z80sim;
 // closing the tab (or Stop) removes the panel -> unmount -> stop.
 export default function SimulatorPanel() {
-  const { setSimRunning } = useApp();
+  const { setSimRunning, simHandleRef, compiledHexFiles } = useApp();
   const elRef = useRef<HTMLDivElement>(null);
-  const handleRef = useRef<SimulatorHandle | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -18,7 +17,11 @@ export default function SimulatorPanel() {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       if (cancelled || !elRef.current) return;
       try {
-        handleRef.current = await startSimulator(elRef.current);
+        // Preload already-compiled .h files so Load works right away.
+        simHandleRef.current = await startSimulator(
+          elRef.current,
+          compiledHexFiles(),
+        );
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error("z80sim failed to start", e);
@@ -28,8 +31,8 @@ export default function SimulatorPanel() {
     return () => {
       cancelled = true;
       setSimRunning(false);
-      handleRef.current?.stop().catch(() => {});
-      handleRef.current = null;
+      simHandleRef.current?.stop().catch(() => {});
+      simHandleRef.current = null;
     };
     // run once for this panel instance
     // eslint-disable-next-line react-hooks/exhaustive-deps

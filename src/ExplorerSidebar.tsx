@@ -16,8 +16,21 @@ type Edit = { mode: "new" } | { mode: "rename"; name: string } | null;
 // pane. New / rename use an inline input row (VS Code style) — no native
 // prompt() dialogs.
 export default function ExplorerSidebar() {
-  const { files, activeFile, openFile, createFile, commitRename, deleteFile } =
-    useApp();
+  const {
+    files,
+    activeFile,
+    openFile,
+    createFile,
+    commitRename,
+    deleteFile,
+    statusOf,
+  } = useApp();
+
+  const statusTitle: Record<string, string> = {
+    none: "Not compiled",
+    fresh: "Compiled (up to date)",
+    stale: "Compiled — source changed since (recompile)",
+  };
   const [edit, setEdit] = useState<Edit>(null);
   const [draft, setDraft] = useState("");
   const finishing = useRef(false);
@@ -82,6 +95,10 @@ export default function ExplorerSidebar() {
               className={f.name === activeFile ? "active" : ""}
               onClick={() => openFile(f.name)}
             >
+              <span
+                className={"cstatus " + statusOf(f.name)}
+                title={statusTitle[statusOf(f.name)]}
+              />
               <span className="fname">{f.name}</span>
               <span className="file-actions">
                 <button

@@ -234,7 +234,19 @@ body {
 .filelist li.muted { color: var(--fg-dim); }
 .filelist li.readonly { cursor: default; padding-left: 20px; font-size: 12px; }
 .filelist li.readonly:hover { background: transparent; }
-.fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+/* compile status dot */
+.cstatus {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  margin-right: 7px;
+  box-sizing: border-box;
+}
+.cstatus.none { border: 1px solid var(--fg-dim); background: transparent; }
+.cstatus.fresh { background: var(--ok); }
+.cstatus.stale { background: #d7a41a; }
 .file-actions { display: none; flex: 0 0 auto; }
 .filelist li:hover .file-actions { display: flex; }
 
