@@ -10,6 +10,14 @@ import {
 import type { DockviewApi } from "dockview-react";
 import { assemble, type AssembleResult } from "../dosbox/assembler";
 import type { SimulatorHandle } from "../dosbox/simulator";
+import { compiledArtifactFor } from "../files/artifacts";
+import {
+  DEFAULT_WORKSPACE_SETTINGS,
+  loadWorkspaceSettings,
+  normalizeWorkspaceSettings,
+  saveWorkspaceSettings,
+  type WorkspaceSettings,
+} from "../settings/store";
 import {
   compileStatus,
   dosBaseName,
@@ -19,6 +27,7 @@ import {
   saveActive,
   saveFiles,
   type AsmFile,
+  type CompiledArtifact,
   type CompileStatus,
 } from "../files/store";
 
@@ -56,6 +65,10 @@ export interface AppState {
   // assemble
   busy: boolean;
   result: AssembleResult | null;
+  activeArtifact: CompiledArtifact | undefined;
+  settings: WorkspaceSettings;
+  updateSettings: (changes: Partial<WorkspaceSettings>) => void;
+  resetSettings: () => void;
   focusOutput: (t: OutputTab) => void;
   outputCollapsed: boolean;
   expandOutput: () => void;
@@ -92,6 +105,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [outputCollapsed, setOutputCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
+  const [settings, setSettings] = useState<WorkspaceSettings>(
+    loadWorkspaceSettings,
+  );
   const dockApiRef = useRef<DockviewApi | null>(null);
   const simHandleRef = useRef<SimulatorHandle | null>(null);
 
@@ -314,6 +330,23 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
 
+  const updateSettings = useCallback(
+    (changes: Partial<WorkspaceSettings>) => {
+      setSettings((current) => {
+        const next = normalizeWorkspaceSettings({ ...current, ...changes });
+        saveWorkspaceSettings(next);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const resetSettings = useCallback(() => {
+    const defaults = { ...DEFAULT_WORKSPACE_SETTINGS };
+    saveWorkspaceSettings(defaults);
+    setSettings(defaults);
+  }, []);
+
   const toggleSimulator = useCallback(() => {
     const api = dockApiRef.current;
     if (!api) return;
@@ -336,6 +369,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const baseName = dosBaseName(active.name).toLowerCase();
+  const activeArtifact = compiledArtifactFor(files, active.name);
   const statusText = busy
     ? "Assembling…"
     : result
@@ -360,6 +394,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     compiledHexFiles,
     busy,
     result,
+    activeArtifact,
+    settings,
+    updateSettings,
+    resetSettings,
     focusOutput,
     outputCollapsed,
     expandOutput,

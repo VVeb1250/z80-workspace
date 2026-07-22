@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Icon } from "./Icon";
 import { useApp } from "./state/AppState";
 
 const TOOL_FILES = [
@@ -28,8 +29,8 @@ export default function ExplorerSidebar({ width }: { width: number }) {
 
   const statusTitle: Record<string, string> = {
     none: "Not compiled",
-    fresh: "Compiled (up to date)",
-    stale: "Compiled — source changed since (recompile)",
+    fresh: "Compiled and up to date",
+    stale: "Source changed — assemble again",
   };
   const [edit, setEdit] = useState<Edit>(null);
   const [draft, setDraft] = useState("");
@@ -58,20 +59,26 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     }, 0);
   };
 
-  const inputRow = (extraClass = "") => (
-    <li className={"edit-row " + extraClass}>
+  const inputRow = (key: string) => (
+    <li className="edit-row" key={key}>
       <input
-        className="inline-input"
+        aria-label={
+          edit?.mode === "rename"
+            ? "Rename assembly file"
+            : "New assembly file name"
+        }
         autoFocus
+        className="inline-input"
+        onBlur={() => finish(true)}
+        onChange={(event) => setDraft(event.target.value)}
+        onFocus={(event) => event.currentTarget.select()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") finish(true);
+          else if (event.key === "Escape") finish(false);
+        }}
+        placeholder="filename"
         spellCheck={false}
         value={draft}
-        placeholder="filename"
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") finish(true);
-          else if (e.key === "Escape") finish(false);
-        }}
-        onBlur={() => finish(true)}
       />
       <span className="ext-hint">.asm</span>
     </li>
@@ -79,62 +86,102 @@ export default function ExplorerSidebar({ width }: { width: number }) {
 
   return (
     <aside
+      aria-label="Explorer"
       className="app-sidebar"
       style={{ flex: `0 0 ${width}px`, width }}
     >
       <div className="section-title">
-        <span>Explorer</span>
-        <button className="icon-btn" title="New file" onClick={startNew}>
-          +
+        <div className="section-heading">
+          <span>Explorer</span>
+          <span
+            aria-label={`${files.length} assembly files`}
+            className="section-count"
+          >
+            {files.length}
+          </span>
+        </div>
+        <button
+          aria-label="Create assembly file"
+          className="icon-btn"
+          onClick={startNew}
+          title="New assembly file"
+        >
+          <Icon name="plus" size={16} />
         </button>
       </div>
-      <ul className="filelist">
-        {files.map((f) =>
-          edit?.mode === "rename" && edit.name === f.name ? (
-            <div key={f.name}>{inputRow()}</div>
-          ) : (
+
+      <ul aria-label="Assembly files" className="filelist source-files">
+        {files.map((file) => {
+          if (edit?.mode === "rename" && edit.name === file.name) {
+            return inputRow(file.name);
+          }
+
+          const compileStatus = statusOf(file.name);
+          return (
             <li
-              key={f.name}
-              className={f.name === activeFile ? "active" : ""}
-              onClick={() => openFile(f.name)}
+              className={file.name === activeFile ? "active" : ""}
+              key={file.name}
             >
-              <span
-                className={"cstatus " + statusOf(f.name)}
-                title={statusTitle[statusOf(f.name)]}
-              />
-              <span className="fname">{f.name}</span>
+              <button
+                aria-current={file.name === activeFile ? "true" : undefined}
+                aria-label={`${file.name}, ${statusTitle[compileStatus]}`}
+                className="file-open"
+                onClick={() => openFile(file.name)}
+                onDoubleClick={() => startRename(file.name)}
+                title={`Open ${file.name}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`cstatus ${compileStatus}`}
+                  title={statusTitle[compileStatus]}
+                />
+                <Icon className="file-icon" name="file-code" size={15} />
+                <span className="fname">{file.name}</span>
+              </button>
               <span className="file-actions">
                 <button
+                  aria-label={`Rename ${file.name}`}
                   className="icon-btn"
-                  title="Rename"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startRename(f.name);
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startRename(file.name);
                   }}
+                  title="Rename"
                 >
-                  ✎
+                  <Icon name="pencil" size={15} />
                 </button>
                 <button
-                  className="icon-btn"
-                  title="Delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteFile(f.name);
+                  aria-label={`Delete ${file.name}`}
+                  className="icon-btn danger-icon"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    deleteFile(file.name);
                   }}
+                  title="Delete"
                 >
-                  ✕
+                  <Icon name="trash" size={15} />
                 </button>
               </span>
             </li>
-          ),
-        )}
-        {edit?.mode === "new" && inputRow()}
+          );
+        })}
+        {edit?.mode === "new" && inputRow("__new")}
       </ul>
-      <div className="section-title">micro_processor (read-only)</div>
-      <ul className="filelist">
-        {TOOL_FILES.map((f) => (
-          <li key={f} className="muted readonly">
-            {f}
+
+      <div className="section-title tool-heading">
+        <span>Toolchain</span>
+        <span className="readonly-label">
+          <Icon name="lock" size={12} /> Read-only
+        </span>
+      </div>
+      <ul
+        aria-label="Read-only toolchain files"
+        className="filelist tool-files"
+      >
+        {TOOL_FILES.map((file) => (
+          <li className="muted readonly" key={file}>
+            <Icon name="file" size={14} />
+            <span className="fname">{file}</span>
           </li>
         ))}
       </ul>

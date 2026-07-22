@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { IDockviewHeaderActionsProps } from "dockview-react";
+import { Icon } from "../Icon";
 import { isOutputId, useApp } from "../state/AppState";
 
 // Per-group controls on the right of the tab bar: maximize/restore, plus a
@@ -25,19 +26,22 @@ export function RightHeaderActions(props: IDockviewHeaderActionsProps) {
   return (
     <div className="dv-actions">
       <button
+        aria-label={maximized ? "Restore panel" : "Maximize panel"}
         className="dv-action-btn"
         onClick={toggle}
         title={maximized ? "Restore panel" : "Maximize panel"}
       >
-        {maximized ? "❐" : "▢"}
+        <Icon name={maximized ? "restore" : "maximize"} size={16} />
       </button>
       {isOutputGroup && (
         <button
+          aria-expanded={!outputCollapsed}
+          aria-label={outputCollapsed ? "Show output" : "Hide output"}
           className="dv-action-btn"
           onClick={toggleOutputCollapsed}
           title={outputCollapsed ? "Show output" : "Hide output"}
         >
-          {outputCollapsed ? "▲" : "▼"}
+          <Icon name={outputCollapsed ? "chevron-up" : "chevron-down"} size={16} />
         </button>
       )}
     </div>

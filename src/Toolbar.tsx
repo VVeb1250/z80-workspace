@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { Icon } from "./Icon";
+import SettingsMenu from "./SettingsMenu";
 import { useApp } from "./state/AppState";
 
 export default function Toolbar() {
@@ -5,55 +8,120 @@ export default function Toolbar() {
     onAssemble,
     busy,
     result,
+    activeArtifact,
     download,
     baseName,
     statusText,
     simRunning,
     toggleSimulator,
     toggleSidebar,
+    sidebarOpen,
   } = useApp();
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "Enter" &&
+        !busy
+      ) {
+        event.preventDefault();
+        void onAssemble();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [busy, onAssemble]);
+
+  const statusKind = busy
+    ? "busy"
+    : result
+      ? result.errorCount === 0
+        ? "ok"
+        : "err"
+      : "idle";
 
   return (
     <header className="toolbar">
       <button
-        className="icon-btn sb-toggle"
+        aria-expanded={sidebarOpen}
+        aria-label={sidebarOpen ? "Hide Explorer" : "Show Explorer"}
+        className="icon-btn toolbar-icon-btn sb-toggle"
         title="Toggle sidebar (Ctrl+B)"
         onClick={toggleSidebar}
       >
-        ☰
+        <Icon name="panel-left" />
       </button>
-      <span className="brand">Z80 Workspace</span>
-      <button className="tbtn primary" onClick={onAssemble} disabled={busy}>
-        {busy ? "…" : "Assemble (C16)"}
-      </button>
-      <button
-        className="tbtn"
-        disabled={!result?.hex}
-        onClick={() => result && download(`${baseName}.hex`, result.hex)}
-      >
-        Export .hex
-      </button>
-      <button
-        className="tbtn"
-        disabled={!result?.listing}
-        onClick={() => result && download(`${baseName}.lst`, result.listing)}
-      >
-        Export .lst
-      </button>
-      <button
-        className={"tbtn sim-btn " + (simRunning ? "running" : "idle")}
-        onClick={toggleSimulator}
-      >
-        <span className="sim-dot" />
-        {simRunning ? "Stop z80sim" : "Run z80sim"}
-      </button>
+      <strong className="brand">Z80 Workspace</strong>
+      <nav className="toolbar-actions" aria-label="Workspace actions">
+        <button
+          aria-busy={busy}
+          aria-keyshortcuts="Control+Enter Meta+Enter"
+          className="tbtn primary"
+          onClick={() => void onAssemble()}
+          disabled={busy}
+          title="Assemble active file (Ctrl+Enter)"
+        >
+          <Icon name={busy ? "loader" : "hammer"} className={busy ? "spin" : ""} />
+          <span>{busy ? "Assembling…" : "Assemble"}</span>
+        </button>
+        <div className="toolbar-group" aria-label="Export build files">
+          <button
+            className="tbtn"
+            disabled={!activeArtifact?.hex}
+            onClick={() =>
+              activeArtifact?.hex &&
+              download(`${baseName}.hex`, activeArtifact.hex)
+            }
+            title="Download Intel HEX output"
+          >
+            <Icon name="download" />
+            <span className="export-label">.H</span>
+          </button>
+          <button
+            className="tbtn"
+            disabled={!activeArtifact?.lst}
+            onClick={() =>
+              activeArtifact?.lst &&
+              download(`${baseName}.lst`, activeArtifact.lst)
+            }
+            title="Download assembler listing"
+          >
+            <Icon name="download" />
+            <span className="export-label">.LST</span>
+          </button>
+        </div>
+        <button
+          aria-pressed={simRunning}
+          className={`tbtn sim-btn ${simRunning ? "running" : "idle"}`}
+          onClick={toggleSimulator}
+          title={simRunning ? "Stop the simulator" : "Open and run the simulator"}
+        >
+          <Icon name={simRunning ? "stop" : "play"} />
+          <span>{simRunning ? "Stop simulator" : "Run simulator"}</span>
+        </button>
+      </nav>
       <span
-        className={
-          "status " + (result ? (result.errorCount === 0 ? "ok" : "err") : "")
-        }
+        aria-atomic="true"
+        aria-live="polite"
+        className={`status ${statusKind}`}
+        role="status"
       >
-        {statusText}
+        <Icon
+          name={
+            statusKind === "ok"
+              ? "check-circle"
+              : statusKind === "err"
+                ? "alert-circle"
+                : statusKind === "busy"
+                  ? "loader"
+                  : "terminal"
+          }
+          className={statusKind === "busy" ? "spin" : ""}
+        />
+        <span>{statusText}</span>
       </span>
+      <SettingsMenu />
     </header>
   );
 }

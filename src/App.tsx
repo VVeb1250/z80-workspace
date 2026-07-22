@@ -62,6 +62,13 @@ function Shell() {
     document.body.style.userSelect = "none";
   };
 
+  const resizeWithKeyboard = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const direction = event.key === "ArrowLeft" ? -1 : 1;
+    setSidebarWidth((current) => clampWidth(current + direction * 12));
+  };
+
   return (
     <div className="app">
       <Toolbar />
@@ -70,8 +77,16 @@ function Shell() {
           <>
             <ExplorerSidebar width={sidebarWidth} />
             <div
+              aria-label="Resize Explorer"
+              aria-orientation="vertical"
+              aria-valuemax={SIDEBAR_MAX}
+              aria-valuemin={SIDEBAR_MIN}
+              aria-valuenow={sidebarWidth}
               className="resize"
               onMouseDown={startDrag}
+              onKeyDown={resizeWithKeyboard}
+              role="separator"
+              tabIndex={0}
               title="Drag to resize"
             />
           </>
