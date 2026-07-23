@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { IDockviewPanelProps } from "dockview-react";
+import { runZ80TabAction } from "../editor/tabAction";
 import { Z80_LANGUAGE_ID } from "../editor/z80language";
 import { registerZ80LanguageSupport, setZ80Diagnostics } from "../editor/z80Support";
 import { useApp } from "../state/AppState";
@@ -52,17 +53,7 @@ export default function EditorPanel(
       label: "Indent with Tab",
       keybindings: [monaco.KeyCode.Tab],
       precondition: "editorTextFocus && !editorReadonly",
-      run: () => {
-        const suggestionVisible = Boolean(
-          editor.getDomNode()?.querySelector(".suggest-widget.visible"),
-        );
-        if (tabAcceptsSuggestionRef.current && suggestionVisible) {
-          editor.trigger("z80-tab-suggestion", "acceptSelectedSuggestion", null);
-          editor.trigger("z80-tab-suggestion", "hideSuggestWidget", null);
-          return;
-        }
-        runIndentCommand("tab");
-      },
+      run: () => runZ80TabAction(editor, tabAcceptsSuggestionRef.current),
     });
     editor.addAction({
       id: "z80-outdent-with-shift-tab",
