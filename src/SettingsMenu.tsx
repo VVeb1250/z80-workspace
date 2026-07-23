@@ -238,10 +238,10 @@ export default function SettingsMenu() {
                   onChange={(event) => {
                     const editorTheme = event.target.value;
                     if (isZ80ThemeId(editorTheme)) {
-                      updateSettings({ editorTheme });
+                      updateSettings({ theme: editorTheme });
                     }
                   }}
-                  value={settings.editorTheme}
+                  value={settings.theme}
                 >
                   {Z80_THEME_OPTIONS.map(({ id, label }) => (
                     <option key={id} value={id}>{label}</option>

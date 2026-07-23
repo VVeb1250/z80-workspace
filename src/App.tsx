@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Dock from "./Dock";
 import Toolbar from "./Toolbar";
 import ExplorerSidebar from "./ExplorerSidebar";
+import { applyWorkspaceTheme } from "./editor/z80Theme";
 import { AppStateProvider, useApp } from "./state/AppState";
 import "./App.css";
 
@@ -11,13 +12,17 @@ const clampWidth = (w: number) =>
   Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w));
 
 function Shell() {
-  const { sidebarOpen, toggleSidebar } = useApp();
+  const { settings, sidebarOpen, toggleSidebar } = useApp();
   const workbenchRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = Number(localStorage.getItem("sidebarWidth"));
     return saved ? clampWidth(saved) : 230;
   });
+
+  useLayoutEffect(() => {
+    applyWorkspaceTheme(document.documentElement, settings.theme);
+  }, [settings.theme]);
 
   // Ctrl+B toggles the sidebar, like VS Code.
   useEffect(() => {

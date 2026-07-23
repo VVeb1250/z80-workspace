@@ -70,7 +70,7 @@ export default function EditorPanel(
     <div className="panel-fill" onFocus={() => setActiveFile(name)}>
       <Editor
         language={Z80_LANGUAGE_ID}
-        theme={settings.editorTheme}
+        theme={settings.theme}
         path={name}
         value={contentOf(name)}
         onChange={(v) => updateSource(name, v ?? "")}

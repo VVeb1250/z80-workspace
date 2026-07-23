@@ -54,6 +54,34 @@ export const Z80_THEMES = {
     }),
     colors: {},
   },
+  "solarized-dark": {
+    base: "vs-dark",
+    inherit: true,
+    rules: syntaxRules({
+      directive: "D33682",
+      label: "B58900",
+      mnemonic: "268BD2",
+      register: "2AA198",
+    }),
+    colors: {
+      "editor.background": "#002B36",
+      "editor.foreground": "#839496",
+    },
+  },
+  monokai: {
+    base: "vs-dark",
+    inherit: true,
+    rules: syntaxRules({
+      directive: "F92672",
+      label: "E6DB74",
+      mnemonic: "66D9EF",
+      register: "A6E22E",
+    }),
+    colors: {
+      "editor.background": "#272822",
+      "editor.foreground": "#F8F8F2",
+    },
+  },
 } satisfies Record<string, editor.IStandaloneThemeData>;
 
 export type Z80ThemeId = keyof typeof Z80_THEMES;
@@ -67,10 +95,23 @@ export const Z80_THEME_OPTIONS: readonly {
   { id: "z80-dark", label: "Z80 Dark" },
   { id: "z80-light", label: "Z80 Light" },
   { id: "z80-high-contrast", label: "High Contrast" },
+  { id: "solarized-dark", label: "Solarized Dark" },
+  { id: "monokai", label: "Monokai" },
 ];
 
 export function isZ80ThemeId(value: unknown): value is Z80ThemeId {
   return typeof value === "string" && Object.hasOwn(Z80_THEMES, value);
+}
+
+interface WorkspaceThemeRoot {
+  dataset: { theme?: string };
+}
+
+export function applyWorkspaceTheme(
+  root: WorkspaceThemeRoot,
+  theme: Z80ThemeId,
+): void {
+  root.dataset.theme = theme;
 }
 
 interface Z80ThemeRegistrar {

@@ -10,7 +10,7 @@ export const TAB_SIZES = [2, 4, 6, 8] as const;
 
 export interface WorkspaceSettings {
   editorFontSize: number;
-  editorTheme: Z80ThemeId;
+  theme: Z80ThemeId;
   outputFontSize: number;
   tabSize: number;
   insertSpaces: boolean;
@@ -27,7 +27,7 @@ export interface WorkspaceSettings {
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   editorFontSize: 13,
-  editorTheme: DEFAULT_Z80_THEME_ID,
+  theme: DEFAULT_Z80_THEME_ID,
   outputFontSize: 13,
   tabSize: 4,
   insertSpaces: true,
@@ -59,14 +59,17 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
   if (!value || typeof value !== "object") {
     return { ...DEFAULT_WORKSPACE_SETTINGS };
   }
-  const input = value as Partial<WorkspaceSettings>;
+  const input = value as Partial<WorkspaceSettings> & {
+    editorTheme?: unknown;
+  };
+  const theme = input.theme ?? input.editorTheme;
   return {
     editorFontSize: isValidFontSize(input.editorFontSize)
       ? input.editorFontSize
       : DEFAULT_WORKSPACE_SETTINGS.editorFontSize,
-    editorTheme: isZ80ThemeId(input.editorTheme)
-      ? input.editorTheme
-      : DEFAULT_WORKSPACE_SETTINGS.editorTheme,
+    theme: isZ80ThemeId(theme)
+      ? theme
+      : DEFAULT_WORKSPACE_SETTINGS.theme,
     outputFontSize: isValidFontSize(input.outputFontSize)
       ? input.outputFontSize
       : DEFAULT_WORKSPACE_SETTINGS.outputFontSize,
