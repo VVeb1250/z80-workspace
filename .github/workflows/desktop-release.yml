@@ -1,0 +1,104 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create
+        required: true
+        default: v0.1.0
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    name: Test and build web app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Keep npm install until the cross-platform optional-dependency lockfile
+      # issue documented in deploy.yml is removed.
+      - run: npm install
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+
+  package:
+    name: Package ${{ matrix.name }}
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            command: package:win
+            artifact: desktop-windows
+          - name: macOS
+            os: macos-latest
+            command: package:mac
+            artifact: desktop-macos
+          - name: Linux
+            os: ubuntu-latest
+            command: package:linux
+            artifact: desktop-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - run: npm run ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.deb
+
+  release:
+    name: Publish GitHub Release
+    needs: package
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Create checksums
+        run: sha256sum release/* > release/SHA256SUMS.txt
+      - name: Create release and upload desktop packages
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" release/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Z80 Workspace $RELEASE_TAG" \
+              --generate-notes
+          fi

@@ -4,6 +4,16 @@
 
 > โครงหน้าตาแบบ VS Code: sidebar + editor tabs + panel ล่าง
 
+## ดาวน์โหลด Desktop App
+
+ดาวน์โหลดเวอร์ชันล่าสุดได้จาก [GitHub Releases](https://github.com/VVeb1250/z80-workspace/releases/latest) โดยไม่ต้อง clone repository หรือติดตั้ง Node.js
+
+- **Windows** — installer หรือ portable (`x64` / `arm64`)
+- **macOS** — universal DMG หรือ ZIP (รองรับ Intel และ Apple Silicon)
+- **Linux** — AppImage หรือ DEB (`x64` / `arm64`)
+
+แพ็กเกจปัจจุบันยังไม่ได้เซ็นด้วย code-signing certificate ระบบปฏิบัติการจึงอาจแสดงคำเตือนผู้พัฒนาที่ไม่รู้จักในครั้งแรกที่เปิด
+
 ## ฟีเจอร์
 
 - **Editor** — Monaco (ตัวเดียวกับ VS Code) + syntax highlight Z80
@@ -33,6 +43,8 @@
 npm install
 npm run dev      # dev server
 npm run build    # build โปรดักชัน (ออกที่ dist/)
+npm run desktop  # build และเปิด Electron app
+npm run package  # สร้าง desktop package สำหรับ OS ปัจจุบัน
 ```
 
 ## Stack

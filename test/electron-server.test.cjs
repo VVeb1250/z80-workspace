@@ -47,9 +47,24 @@ test("falls back to the SPA entry but returns 404 for missing assets", async () 
   });
 });
 
+test("supports HEAD and rejects unsupported or malformed requests", async () => {
+  await withStaticServer(async (origin) => {
+    const head = await fetch(`${origin}/assets/app.js`, { method: "HEAD" });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), "");
+
+    const post = await fetch(origin, { method: "POST" });
+    assert.equal(post.status, 405);
+    assert.equal(post.headers.get("allow"), "GET, HEAD");
+
+    const malformed = await fetch(`${origin}/%E0%A4%A`);
+    assert.equal(malformed.status, 400);
+  });
+});
+
 test("never serves files outside the packaged dist directory", async () => {
   await withStaticServer(async (origin) => {
-    const response = await fetch(`${origin}/%2e%2e/secret.txt`);
+    const response = await fetch(`${origin}/%2e%2e%2fsecret.txt`);
     assert.equal(response.status, 404);
     assert.notEqual(await response.text(), "not public");
   });
