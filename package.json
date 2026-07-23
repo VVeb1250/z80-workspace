@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test test/artifacts.test.ts test/editor-support.test.ts test/instructions.test.ts test/settings.test.ts",
+    "test": "node --test test/artifacts.test.ts test/editor-support.test.ts test/instructions.test.ts test/settings.test.ts test/tab-action.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
