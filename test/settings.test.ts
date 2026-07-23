@@ -24,6 +24,8 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       tabAcceptsSuggestion: true,
       diagnostics: false,
       lineNumbers: false,
+      tutorialSeen: true,
+      tutorialLang: "en",
     }),
     {
       editorFontSize: 16,
@@ -40,6 +42,8 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       tabAcceptsSuggestion: true,
       diagnostics: false,
       lineNumbers: false,
+      tutorialSeen: true,
+      tutorialLang: "en",
     },
   );
 
@@ -60,6 +64,18 @@ test("defaults unsupported editor themes to Z80 Dark", () => {
     normalizeWorkspaceSettings({ theme: "neon-rainbow" }).theme,
     "z80-dark",
   );
+});
+
+test("hides the Welcome auto-open flag until the first run marks it seen", () => {
+  assert.equal(DEFAULT_WORKSPACE_SETTINGS.tutorialSeen, false);
+  assert.equal(normalizeWorkspaceSettings({}).tutorialSeen, false);
+  assert.equal(normalizeWorkspaceSettings({ tutorialSeen: true }).tutorialSeen, true);
+});
+
+test("defaults tutorial language to Thai and rejects unknown languages", () => {
+  assert.equal(DEFAULT_WORKSPACE_SETTINGS.tutorialLang, "th");
+  assert.equal(normalizeWorkspaceSettings({ tutorialLang: "en" }).tutorialLang, "en");
+  assert.equal(normalizeWorkspaceSettings({ tutorialLang: "fr" }).tutorialLang, "th");
 });
 
 test("uses spaces by default but supports real tab characters", () => {

@@ -24,6 +24,10 @@ export type IconName =
   | "book-open"
   | "search"
   | "settings"
+  | "help-circle"
+  | "compass"
+  | "arrow-left"
+  | "arrow-right"
   | "x";
 
 interface IconProps {
@@ -90,11 +94,16 @@ export function Icon({ name, size = 18, className = "" }: IconProps) {
         <path d="M4 7h16M9 3h6l1 4H8zM7 7l1 14h8l1-14M10 11v6m4-6v6" />
       </>
     ),
-    maximize: <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5" />,
+    maximize: (
+      <>
+        <path d="M15 3h6v6M9 21H3v-6" />
+        <path d="M21 3l-7 7M3 21l7-7" />
+      </>
+    ),
     restore: (
       <>
-        <rect x="5" y="7" width="12" height="12" rx="1" />
-        <path d="M8 7V4h12v12h-3" />
+        <path d="M4 14h6v6M20 10h-6V4" />
+        <path d="M14 10l7-7M3 21l7-7" />
       </>
     ),
     "chevron-down": <path d="m7 10 5 5 5-5" />,
@@ -143,12 +152,24 @@ export function Icon({ name, size = 18, className = "" }: IconProps) {
     ),
     settings: (
       <>
-        <path d="M4 7h9m4 0h3M4 12h3m4 0h9M4 17h7m4 0h5" />
-        <circle cx="15" cy="7" r="2" />
-        <circle cx="9" cy="12" r="2" />
-        <circle cx="13" cy="17" r="2" />
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
       </>
     ),
+    "help-circle": (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.2 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.6 2.4-2.6 4M12 17h.01" />
+      </>
+    ),
+    compass: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m15.5 8.5-2 5-5 2 2-5z" fill="currentColor" stroke="none" />
+      </>
+    ),
+    "arrow-left": <path d="M19 12H5m0 0 6-6m-6 6 6 6" />,
+    "arrow-right": <path d="M5 12h14m0 0-6-6m6 6-6 6" />,
     x: <path d="M6 6l12 12M18 6 6 18" />,
   };
 

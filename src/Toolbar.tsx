@@ -14,6 +14,7 @@ export default function Toolbar() {
     toggleSimulator,
     toggleSidebar,
     sidebarOpen,
+    openWelcome,
   } = useApp();
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function Toolbar() {
           aria-busy={busy}
           aria-keyshortcuts="Control+Enter Meta+Enter"
           className="tbtn primary"
+          data-tour="assemble"
           onClick={() => void onAssemble()}
           disabled={busy}
           title="Assemble active file (Ctrl+Enter)"
@@ -67,6 +69,7 @@ export default function Toolbar() {
         <button
           aria-pressed={simRunning}
           className={`tbtn sim-btn ${simRunning ? "running" : "idle"}`}
+          data-tour="run"
           onClick={toggleSimulator}
           title={simRunning ? "Stop the simulator" : "Open and run the simulator"}
         >
@@ -94,6 +97,15 @@ export default function Toolbar() {
         />
         <span>{statusText}</span>
       </span>
+      <button
+        className="icon-btn toolbar-icon-btn"
+        data-tour="help"
+        onClick={openWelcome}
+        title="Getting started / tutorial"
+        aria-label="Getting started"
+      >
+        <Icon name="help-circle" size={16} />
+      </button>
       <SettingsMenu />
     </header>
   );

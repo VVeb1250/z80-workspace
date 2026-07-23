@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Dock from "./Dock";
 import Toolbar from "./Toolbar";
 import ExplorerSidebar from "./ExplorerSidebar";
+import OutputFooter from "./panels/OutputFooter";
+import GuidedTour from "./tutorial/GuidedTour";
 import { applyWorkspaceTheme } from "./editor/z80Theme";
 import { AppStateProvider, useApp } from "./state/AppState";
 import "./App.css";
@@ -97,9 +99,13 @@ function Shell() {
           </>
         )}
         <div className="dock-host">
-          <Dock />
+          <div className="dock-area">
+            <Dock />
+          </div>
+          <OutputFooter />
         </div>
       </div>
+      <GuidedTour />
     </div>
   );
 }

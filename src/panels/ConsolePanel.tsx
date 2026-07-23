@@ -5,14 +5,17 @@ import { useApp, type OutputTab } from "../state/AppState";
 // (Console / Listing / Hex) live in the dockview header; this just renders the
 // selected channel's text.
 export default function ConsolePanel({ channel }: { channel: OutputTab }) {
-  const { result, settings } = useApp();
+  const { result, activeArtifact, settings } = useApp();
 
+  // Console = the last compiler run's messages (an action log). Listing / Hex
+  // are per-file build products, so they follow the file being viewed, not
+  // whichever file was assembled last.
   const text =
     channel === "console"
       ? result?.stdout
       : channel === "listing"
-        ? result?.listing
-        : result?.hex;
+        ? activeArtifact?.lst
+        : activeArtifact?.hex;
 
   if (!text) {
     const copy = {

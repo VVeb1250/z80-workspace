@@ -11,6 +11,7 @@ import type { DockviewApi } from "dockview-react";
 import { assemble, type AssembleResult } from "../dosbox/assembler";
 import type { SimulatorHandle } from "../dosbox/simulator";
 import { compiledArtifactFor } from "../files/artifacts";
+import { TOUR_STEPS } from "../tutorial/tutorialContent";
 import {
   DEFAULT_WORKSPACE_SETTINGS,
   loadWorkspaceSettings,
@@ -36,19 +37,16 @@ export const hexName = (displayName: string) =>
   dosBaseName(displayName) + ".H";
 
 export type OutputTab = "console" | "listing" | "hex";
-/** Bottom output channels, rendered as VS Code-style panel tabs. */
+/** Bottom output channels, rendered as tabs in the fixed output footer. */
 export const OUTPUT_TABS: OutputTab[] = ["console", "listing", "hex"];
-export const OUTPUT_PREFIX = "output:";
-export const outputId = (t: OutputTab) => OUTPUT_PREFIX + t;
 export const outputTitle = (t: OutputTab) => t[0].toUpperCase() + t.slice(1);
-export const isOutputId = (id: string) => id.startsWith(OUTPUT_PREFIX);
-/** Output group height when open, and when collapsed to just its tab bar. */
+/** Default footer height (px) when expanded. */
 export const OUTPUT_HEIGHT = 200;
-export const OUTPUT_HEADER = 35;
 
 export const EDITOR_PREFIX = "file:";
 export const editorId = (name: string) => EDITOR_PREFIX + name;
 export const INSTRUCTIONS_PANEL_ID = "docs:z80-instructions";
+export const WELCOME_PANEL_ID = "docs:welcome";
 
 export interface AppState {
   files: AsmFile[];
@@ -58,6 +56,8 @@ export interface AppState {
   setActiveFile: (name: string) => void;
   openFile: (name: string) => void;
   openInstructionReference: () => void;
+  /** Open (or focus) the Welcome / tutorial panel. */
+  openWelcome: () => void;
   createFile: (input: string) => void;
   /** Import .asm sources from disk (file picker or drag-drop). */
   importFiles: (files: FileList | File[]) => Promise<void>;
@@ -73,6 +73,7 @@ export interface AppState {
   settings: WorkspaceSettings;
   updateSettings: (changes: Partial<WorkspaceSettings>) => void;
   resetSettings: () => void;
+  activeOutputTab: OutputTab;
   focusOutput: (t: OutputTab) => void;
   outputCollapsed: boolean;
   expandOutput: () => void;
@@ -89,6 +90,13 @@ export interface AppState {
   simRunning: boolean;
   setSimRunning: (v: boolean) => void;
   toggleSimulator: () => void;
+  // guided tour
+  tourActive: boolean;
+  tourStep: number;
+  startTour: () => void;
+  stopTour: () => void;
+  nextTourStep: () => void;
+  prevTourStep: () => void;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -107,8 +115,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AssembleResult | null>(null);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
+  const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>("console");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
   const [settings, setSettings] = useState<WorkspaceSettings>(
     loadWorkspaceSettings,
   );
@@ -189,6 +200,46 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         : undefined,
     });
   }, []);
+
+  const openWelcome = useCallback(() => {
+    const api = dockApiRef.current;
+    if (!api) return;
+    const existing = api.getPanel(WELCOME_PANEL_ID);
+    if (existing) {
+      existing.api.setActive();
+      return;
+    }
+    const anyEditor = api.panels.find((panel) =>
+      panel.id.startsWith(EDITOR_PREFIX),
+    );
+    api.addPanel({
+      id: WELCOME_PANEL_ID,
+      component: "welcome",
+      title: "Welcome",
+      position: anyEditor
+        ? { referencePanel: anyEditor.id, direction: "within" }
+        : undefined,
+    });
+  }, []);
+
+  const startTour = useCallback(() => {
+    setTourStep(0);
+    setTourActive(true);
+  }, []);
+  const stopTour = useCallback(() => setTourActive(false), []);
+  const nextTourStep = useCallback(() => {
+    setTourStep((step) => {
+      if (step >= TOUR_STEPS.length - 1) {
+        setTourActive(false);
+        return step;
+      }
+      return step + 1;
+    });
+  }, []);
+  const prevTourStep = useCallback(
+    () => setTourStep((step) => Math.max(0, step - 1)),
+    [],
+  );
 
   const createFile = useCallback(
     (input: string) => {
@@ -275,38 +326,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [files, activeFile, persist, setActiveFile, openFile],
   );
 
-  // "Hide" the output = collapse the group to just its tab bar (the tabs stay,
-  // only the pre.output body is hidden). The button toggles it back open.
-  const resizeOutput = useCallback((height: number) => {
-    const api = dockApiRef.current;
-    if (!api) return;
-    const panel = OUTPUT_TABS.map((c) => api.getPanel(outputId(c))).find(
-      Boolean,
-    );
-    panel?.api.setSize({ height });
-  }, []);
+  // The output footer lives outside dockview, so collapse / expand / channel
+  // selection are plain state — the footer renders from these.
+  const expandOutput = useCallback(() => setOutputCollapsed(false), []);
 
-  const expandOutput = useCallback(() => {
-    resizeOutput(OUTPUT_HEIGHT);
-    setOutputCollapsed(false);
-  }, [resizeOutput]);
-
-  const toggleOutputCollapsed = useCallback(() => {
-    setOutputCollapsed((collapsed) => {
-      resizeOutput(collapsed ? OUTPUT_HEIGHT : OUTPUT_HEADER);
-      return !collapsed;
-    });
-  }, [resizeOutput]);
-
-  // Activate a bottom output channel (its dockview tab), VS Code-style,
-  // expanding the panel first if the user had collapsed it.
-  const focusOutput = useCallback(
-    (t: OutputTab) => {
-      expandOutput();
-      dockApiRef.current?.getPanel(outputId(t))?.api.setActive();
-    },
-    [expandOutput],
+  const toggleOutputCollapsed = useCallback(
+    () => setOutputCollapsed((collapsed) => !collapsed),
+    [],
   );
+
+  // Select an output channel, expanding the footer if it was collapsed.
+  const focusOutput = useCallback((t: OutputTab) => {
+    setActiveOutputTab(t);
+    setOutputCollapsed(false);
+  }, []);
 
   const onAssemble = useCallback(async () => {
     setBusy(true);
@@ -441,6 +474,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setActiveFile,
     openFile,
     openInstructionReference,
+    openWelcome,
     createFile,
     importFiles,
     deleteFile,
@@ -453,6 +487,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     settings,
     updateSettings,
     resetSettings,
+    activeOutputTab,
     focusOutput,
     outputCollapsed,
     expandOutput,
@@ -468,6 +503,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     simRunning,
     setSimRunning,
     toggleSimulator,
+    tourActive,
+    tourStep,
+    startTour,
+    stopTour,
+    nextTourStep,
+    prevTourStep,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

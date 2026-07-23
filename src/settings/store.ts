@@ -7,6 +7,8 @@ import {
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 72;
 export const TAB_SIZES = [2, 4, 6, 8] as const;
+export const TUTORIAL_LANGS = ["th", "en"] as const;
+export type TutorialLang = (typeof TUTORIAL_LANGS)[number];
 
 export interface WorkspaceSettings {
   editorFontSize: number;
@@ -23,6 +25,10 @@ export interface WorkspaceSettings {
   tabAcceptsSuggestion: boolean;
   diagnostics: boolean;
   lineNumbers: boolean;
+  /** Whether the first-run Welcome panel has been auto-opened before. */
+  tutorialSeen: boolean;
+  /** Language for tutorial / Welcome content. */
+  tutorialLang: TutorialLang;
 }
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
@@ -40,6 +46,8 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   tabAcceptsSuggestion: false,
   diagnostics: true,
   lineNumbers: true,
+  tutorialSeen: false,
+  tutorialLang: "th",
 };
 
 const STORAGE_KEY = "z80ws.settings.v1";
@@ -48,6 +56,10 @@ const isAllowedNumber = (
   value: unknown,
   allowed: readonly number[],
 ): value is number => typeof value === "number" && allowed.includes(value);
+
+const isTutorialLang = (value: unknown): value is TutorialLang =>
+  typeof value === "string" &&
+  (TUTORIAL_LANGS as readonly string[]).includes(value);
 
 const isValidFontSize = (value: unknown): value is number =>
   typeof value === "number" &&
@@ -116,6 +128,13 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
       typeof input.lineNumbers === "boolean"
         ? input.lineNumbers
         : DEFAULT_WORKSPACE_SETTINGS.lineNumbers,
+    tutorialSeen:
+      typeof input.tutorialSeen === "boolean"
+        ? input.tutorialSeen
+        : DEFAULT_WORKSPACE_SETTINGS.tutorialSeen,
+    tutorialLang: isTutorialLang(input.tutorialLang)
+      ? input.tutorialLang
+      : DEFAULT_WORKSPACE_SETTINGS.tutorialLang,
   };
 }
 

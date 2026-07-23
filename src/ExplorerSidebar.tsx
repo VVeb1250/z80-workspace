@@ -105,6 +105,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     <aside
       aria-label="Explorer"
       className="app-sidebar"
+      data-tour="explorer"
       style={{ flex: `0 0 ${width}px`, width }}
     >
       <div className="section-title">
@@ -226,6 +227,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
         <li className="tool-doc">
           <button
             className="file-open tool-file-open"
+            data-tour="instructions"
             onClick={openInstructionReference}
             title="Open Z80 instruction reference"
             type="button"
