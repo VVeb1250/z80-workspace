@@ -18,8 +18,8 @@ test("defines the expected Z80 syntax color categories", () => {
     keyword: "569CD6",
     "keyword.directive": "C586C0",
     "variable.predefined": "9CDCFE",
-    identifier: "9CDCFE",
-    "type.identifier": "9CDCFE",
+    identifier: "DCDCAA",
+    "type.identifier": "DCDCAA",
   });
 });
 
