@@ -9,8 +9,8 @@ export const Z80_THEME: editor.IStandaloneThemeData = {
     { token: "keyword", foreground: "569CD6" },
     { token: "keyword.directive", foreground: "C586C0" },
     { token: "variable.predefined", foreground: "9CDCFE" },
-    { token: "identifier", foreground: "9CDCFE" },
-    { token: "type.identifier", foreground: "9CDCFE" },
+    { token: "identifier", foreground: "DCDCAA" },
+    { token: "type.identifier", foreground: "DCDCAA" },
   ],
   colors: {},
 };
