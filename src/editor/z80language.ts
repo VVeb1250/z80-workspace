@@ -5,10 +5,6 @@ import type { languages } from "monaco-editor";
 
 export const Z80_LANGUAGE_ID = "z80asm";
 
-// Fixed asm columns: new-line auto-indent to mnemonic, operand alignment.
-export const Z80_MNEMONIC_COL = 16;
-export const Z80_OPERAND_COL = 24;
-
 export const Z80_MNEMONICS = [
   "adc","add","and","bit","call","ccf","cp","cpd","cpdr","cpi","cpir","cpl",
   "daa","dec","di","djnz","ei","ex","exx","halt","im","in","inc","ind","indr",

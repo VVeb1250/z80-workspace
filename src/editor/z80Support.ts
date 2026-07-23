@@ -3,9 +3,7 @@ import type { editor, Position } from "monaco-editor";
 import {
   Z80_DIRECTIVES,
   Z80_LANGUAGE_ID,
-  Z80_MNEMONIC_COL,
   Z80_MNEMONICS,
-  Z80_OPERAND_COL,
   Z80_REGISTERS,
   z80Config,
   z80Language,
@@ -123,17 +121,6 @@ function matchCase(text: string, typed: string): string {
   return lower ? text.toLowerCase() : text.toUpperCase();
 }
 
-// Mnemonics with operands get padded to the operand column, cursor left there.
-// No snippet placeholders -- they fight the suggest widget and Enter splits the
-// line. Operand names still show via signature help.
-function mnemonicInsert(name: string, key: string, startCol: number): string {
-  const sig = SIGNATURES[key]?.[0];
-  const sp = sig ? sig.indexOf(" ") : -1;
-  if (!sig || sp < 0) return name;
-  const pad = " ".repeat(Math.max(1, Z80_OPERAND_COL - (startCol + name.length)));
-  return name + pad;
-}
-
 const NUMBER_LIKE = /^(?:\$|%|\d|[0-9A-Fa-f]+[hH]$|[01]+[bB]$)/;
 
 let diagnosticsOn = true;
@@ -226,19 +213,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
 
   monaco.languages.register({ id: Z80_LANGUAGE_ID });
   monaco.languages.setMonarchTokensProvider(Z80_LANGUAGE_ID, z80Language);
-  // After a label line, indent the next line to the mnemonic column.
-  monaco.languages.setLanguageConfiguration(Z80_LANGUAGE_ID, {
-    ...z80Config,
-    onEnterRules: [
-      {
-        beforeText: /^[A-Za-z_.$][\w.$]*:.*$/,
-        action: {
-          indentAction: monaco.languages.IndentAction.None,
-          appendText: " ".repeat(Z80_MNEMONIC_COL),
-        },
-      },
-    ],
-  });
+  monaco.languages.setLanguageConfiguration(Z80_LANGUAGE_ID, z80Config);
 
   // Debounced live diagnostics per z80 model.
   const timers = new Map<editor.ITextModel, number>();
@@ -311,7 +286,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
               SIGNATURES[mnemonic]?.join(" · ") ?? "Z80 instruction",
               `1_${upper}`,
               DESCRIPTIONS[mnemonic],
-              mnemonicInsert(name, mnemonic, word.startColumn - 1),
+              name,
             ),
           );
         }
