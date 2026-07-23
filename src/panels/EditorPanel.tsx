@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { IDockviewPanelProps } from "dockview-react";
+import { editorTypographyOptions } from "../editor/editorOptions";
 import { runZ80TabAction } from "../editor/tabAction";
 import { Z80_LANGUAGE_ID } from "../editor/z80language";
 import { registerZ80LanguageSupport, setZ80Diagnostics } from "../editor/z80Support";
@@ -35,6 +36,26 @@ export default function EditorPanel(
   useEffect(() => {
     setZ80Diagnostics(settings.diagnostics);
   }, [settings.diagnostics]);
+
+  useEffect(() => {
+    const rawOptions = editorRef.current?.getRawOptions();
+    const configured = editorTypographyOptions(settings.editorFontSize);
+    const typography = {
+      configuredFontSize: configured.fontSize,
+      configuredLineHeight: configured.lineHeight,
+      monacoFontSize: rawOptions?.fontSize,
+      monacoLineHeight: rawOptions?.lineHeight,
+      theme: settings.theme,
+    };
+    if (
+      rawOptions?.lineHeight &&
+      rawOptions.lineHeight < settings.editorFontSize
+    ) {
+      console.warn("[WARN][EditorPanel] rendered line height is too small", typography);
+    } else {
+      console.log("[DEBUG][EditorPanel] typography options", typography);
+    }
+  }, [settings.editorFontSize, settings.theme]);
 
   const beforeMount = useCallback((monaco: Monaco) => {
     registerZ80Themes(monaco);
@@ -77,9 +98,8 @@ export default function EditorPanel(
         beforeMount={beforeMount}
         onMount={onMount}
         options={{
+          ...editorTypographyOptions(settings.editorFontSize),
           fontFamily: 'Consolas, "Courier New", monospace',
-          fontSize: settings.editorFontSize,
-          lineHeight: 20,
           minimap: { enabled: settings.minimap },
           lineNumbers: settings.lineNumbers ? "on" : "off",
           padding: { top: 8, bottom: 8 },
