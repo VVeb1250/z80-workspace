@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   applyWorkspaceTheme,
@@ -14,15 +15,19 @@ function syntaxColors(theme: (typeof Z80_THEMES)[keyof typeof Z80_THEMES]) {
   );
 }
 
-test("offers dark, light and high-contrast editor themes", () => {
+const expectedThemeOptions = [
+  { id: "z80-dark", label: "Z80 Dark" },
+  { id: "z80-light", label: "Z80 Light" },
+  { id: "z80-high-contrast", label: "High Contrast" },
+  { id: "solarized-dark", label: "Solarized Dark" },
+  { id: "monokai", label: "Monokai" },
+  { id: "vim-classic", label: "Vim Classic" },
+  { id: "neovim-night", label: "Neovim Night" },
+] as const;
+
+test("offers the built-in and editor-inspired workspace themes", () => {
   assert.equal(DEFAULT_Z80_THEME_ID, "z80-dark");
-  assert.deepEqual(Z80_THEME_OPTIONS, [
-    { id: "z80-dark", label: "Z80 Dark" },
-    { id: "z80-light", label: "Z80 Light" },
-    { id: "z80-high-contrast", label: "High Contrast" },
-    { id: "solarized-dark", label: "Solarized Dark" },
-    { id: "monokai", label: "Monokai" },
-  ]);
+  assert.deepEqual(Z80_THEME_OPTIONS, expectedThemeOptions);
 });
 
 test("uses colors suited to the dark editor background", () => {
@@ -85,6 +90,49 @@ test("uses the Monokai palette for the full workspace theme", () => {
     identifier: "E6DB74",
     "type.identifier": "E6DB74",
   });
+});
+
+test("uses a crisp terminal palette for Vim Classic", () => {
+  assert.equal(Z80_THEMES["vim-classic"].base, "vs-dark");
+  assert.deepEqual(syntaxColors(Z80_THEMES["vim-classic"]), {
+    keyword: "5FAFFF",
+    "keyword.directive": "FF5FAF",
+    "variable.predefined": "5FD7AF",
+    identifier: "FFFF87",
+    "type.identifier": "FFFF87",
+  });
+  assert.deepEqual(Z80_THEMES["vim-classic"].colors, {
+    "editor.background": "#1C1C1C",
+    "editor.foreground": "#D0D0D0",
+  });
+});
+
+test("uses Neovim's green-blue night palette", () => {
+  assert.equal(Z80_THEMES["neovim-night"].base, "vs-dark");
+  assert.deepEqual(syntaxColors(Z80_THEMES["neovim-night"]), {
+    keyword: "A8C7FA",
+    "keyword.directive": "F3B8E2",
+    "variable.predefined": "8CF8F7",
+    identifier: "FCE094",
+    "type.identifier": "FCE094",
+  });
+  assert.deepEqual(Z80_THEMES["neovim-night"].colors, {
+    "editor.background": "#14161B",
+    "editor.foreground": "#E0E2EA",
+  });
+});
+
+test("defines workspace CSS tokens for every non-default theme", () => {
+  const stylesheet = readFileSync(
+    new URL("../src/App.css", import.meta.url),
+    "utf8",
+  );
+
+  for (const { id } of expectedThemeOptions) {
+    if (id !== DEFAULT_Z80_THEME_ID) {
+      assert.match(stylesheet, new RegExp(`:root\\[data-theme="${id}"\\]`));
+    }
+  }
 });
 
 test("applies the selected theme to the workspace root", () => {
