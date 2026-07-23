@@ -82,6 +82,34 @@ export const Z80_THEMES = {
       "editor.foreground": "#F8F8F2",
     },
   },
+  "vim-classic": {
+    base: "vs-dark",
+    inherit: true,
+    rules: syntaxRules({
+      directive: "FF5FAF",
+      label: "FFFF87",
+      mnemonic: "5FAFFF",
+      register: "5FD7AF",
+    }),
+    colors: {
+      "editor.background": "#1C1C1C",
+      "editor.foreground": "#D0D0D0",
+    },
+  },
+  "neovim-night": {
+    base: "vs-dark",
+    inherit: true,
+    rules: syntaxRules({
+      directive: "F3B8E2",
+      label: "FCE094",
+      mnemonic: "A8C7FA",
+      register: "8CF8F7",
+    }),
+    colors: {
+      "editor.background": "#14161B",
+      "editor.foreground": "#E0E2EA",
+    },
+  },
 } satisfies Record<string, editor.IStandaloneThemeData>;
 
 export type Z80ThemeId = keyof typeof Z80_THEMES;
@@ -97,6 +125,8 @@ export const Z80_THEME_OPTIONS: readonly {
   { id: "z80-high-contrast", label: "High Contrast" },
   { id: "solarized-dark", label: "Solarized Dark" },
   { id: "monokai", label: "Monokai" },
+  { id: "vim-classic", label: "Vim Classic" },
+  { id: "neovim-night", label: "Neovim Night" },
 ];
 
 export function isZ80ThemeId(value: unknown): value is Z80ThemeId {
