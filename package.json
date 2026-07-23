@@ -1,9 +1,12 @@
 {
   "name": "z80-workspace",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local-first Z80 assembly IDE, assembler, and simulator.",
-  "author": "VVeb1250",
+  "author": {
+    "name": "VVeb1250",
+    "email": "VVeb1250@users.noreply.github.com"
+  },
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
