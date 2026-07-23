@@ -37,26 +37,6 @@ export default function EditorPanel(
     setZ80Diagnostics(settings.diagnostics);
   }, [settings.diagnostics]);
 
-  useEffect(() => {
-    const rawOptions = editorRef.current?.getRawOptions();
-    const configured = editorTypographyOptions(settings.editorFontSize);
-    const typography = {
-      configuredFontSize: configured.fontSize,
-      configuredLineHeight: configured.lineHeight,
-      monacoFontSize: rawOptions?.fontSize,
-      monacoLineHeight: rawOptions?.lineHeight,
-      theme: settings.theme,
-    };
-    if (
-      rawOptions?.lineHeight &&
-      rawOptions.lineHeight < settings.editorFontSize
-    ) {
-      console.warn("[WARN][EditorPanel] rendered line height is too small", typography);
-    } else {
-      console.log("[DEBUG][EditorPanel] typography options", typography);
-    }
-  }, [settings.editorFontSize, settings.theme]);
-
   const beforeMount = useCallback((monaco: Monaco) => {
     registerZ80Themes(monaco);
     registerZ80LanguageSupport(monaco);
