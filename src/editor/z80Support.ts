@@ -1,5 +1,6 @@
 import type { Monaco } from "@monaco-editor/react";
 import type { editor, Position } from "monaco-editor";
+import type { CompletionCaseMode } from "../settings/store.ts";
 import {
   Z80_DIRECTIVES,
   Z80_LANGUAGE_ID,
@@ -115,16 +116,27 @@ function activeInstruction(lineBeforeCursor: string): string | undefined {
   return code.split(/\s+/, 1)[0]?.toLowerCase();
 }
 
-// Lowercase suggestions when the user is typing lowercase, else uppercase.
-function matchCase(text: string, typed: string): string {
-  const lower = typed.length > 0 && typed === typed.toLowerCase();
-  return lower ? text.toLowerCase() : text.toUpperCase();
+export function formatZ80Completion(
+  text: string,
+  typed: string,
+  mode: CompletionCaseMode,
+): string {
+  if (mode === "lower") return text.toLowerCase();
+  if (mode === "match" && typed.length > 0 && typed === typed.toLowerCase()) {
+    return text.toLowerCase();
+  }
+  return text.toUpperCase();
 }
 
 const NUMBER_LIKE = /^(?:\$|%|\d|[0-9A-Fa-f]+[hH]$|[01]+[bB]$)/;
 
 let diagnosticsOn = true;
+let completionCaseMode: CompletionCaseMode = "upper";
 let monacoRef: Monaco | null = null;
+
+export function setZ80CompletionCaseMode(mode: CompletionCaseMode): void {
+  completionCaseMode = mode;
+}
 
 // Toggle live diagnostics (settings). Re-validates or clears every z80 model.
 export function setZ80Diagnostics(enabled: boolean): void {
@@ -278,7 +290,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
       if (mode === "root") {
         for (const mnemonic of Z80_MNEMONICS) {
           const upper = mnemonic.toUpperCase();
-          const name = matchCase(mnemonic, typed);
+          const name = formatZ80Completion(mnemonic, typed, completionCaseMode);
           suggestions.push(
             completion(
               upper,
@@ -299,7 +311,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
               "Cross-16 directive",
               `2_${upper}`,
               DIRECTIVE_DESCRIPTIONS[directive],
-              matchCase(directive, typed),
+              formatZ80Completion(directive, typed, completionCaseMode),
             ),
           );
         }
@@ -324,7 +336,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
                   "Condition code",
                   `1_${condition}`,
                   undefined,
-                  matchCase(condition, typed),
+                  formatZ80Completion(condition, typed, completionCaseMode),
                 ),
               );
             }
@@ -361,7 +373,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
                 "Z80 register or condition",
                 `1_${upper}`,
                 undefined,
-                matchCase(register, typed),
+                formatZ80Completion(register, typed, completionCaseMode),
               ),
             );
           }
@@ -373,7 +385,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
                 "Condition code",
                 `1_${condition}`,
                 undefined,
-                matchCase(condition, typed),
+                formatZ80Completion(condition, typed, completionCaseMode),
               ),
             );
           }

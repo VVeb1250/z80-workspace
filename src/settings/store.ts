@@ -8,7 +8,9 @@ export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 72;
 export const TAB_SIZES = [2, 4, 6, 8] as const;
 export const TUTORIAL_LANGS = ["th", "en"] as const;
+export const COMPLETION_CASE_MODES = ["upper", "lower", "match"] as const;
 export type TutorialLang = (typeof TUTORIAL_LANGS)[number];
+export type CompletionCaseMode = (typeof COMPLETION_CASE_MODES)[number];
 
 export interface WorkspaceSettings {
   editorFontSize: number;
@@ -23,6 +25,7 @@ export interface WorkspaceSettings {
   hoverInformation: boolean;
   renderWhitespace: boolean;
   tabAcceptsSuggestion: boolean;
+  completionCase: CompletionCaseMode;
   diagnostics: boolean;
   lineNumbers: boolean;
   /** Whether the first-run Welcome panel has been auto-opened before. */
@@ -44,6 +47,7 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   hoverInformation: true,
   renderWhitespace: false,
   tabAcceptsSuggestion: false,
+  completionCase: "upper",
   diagnostics: true,
   lineNumbers: true,
   tutorialSeen: false,
@@ -60,6 +64,12 @@ const isAllowedNumber = (
 const isTutorialLang = (value: unknown): value is TutorialLang =>
   typeof value === "string" &&
   (TUTORIAL_LANGS as readonly string[]).includes(value);
+
+export const isCompletionCaseMode = (
+  value: unknown,
+): value is CompletionCaseMode =>
+  typeof value === "string" &&
+  (COMPLETION_CASE_MODES as readonly string[]).includes(value);
 
 const isValidFontSize = (value: unknown): value is number =>
   typeof value === "number" &&
@@ -120,6 +130,9 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
       typeof input.tabAcceptsSuggestion === "boolean"
         ? input.tabAcceptsSuggestion
         : DEFAULT_WORKSPACE_SETTINGS.tabAcceptsSuggestion,
+    completionCase: isCompletionCaseMode(input.completionCase)
+      ? input.completionCase
+      : DEFAULT_WORKSPACE_SETTINGS.completionCase,
     diagnostics:
       typeof input.diagnostics === "boolean"
         ? input.diagnostics

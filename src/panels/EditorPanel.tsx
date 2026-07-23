@@ -4,7 +4,11 @@ import type { IDockviewPanelProps } from "dockview-react";
 import { editorTypographyOptions } from "../editor/editorOptions";
 import { runZ80TabAction } from "../editor/tabAction";
 import { Z80_LANGUAGE_ID } from "../editor/z80language";
-import { registerZ80LanguageSupport, setZ80Diagnostics } from "../editor/z80Support";
+import {
+  registerZ80LanguageSupport,
+  setZ80CompletionCaseMode,
+  setZ80Diagnostics,
+} from "../editor/z80Support";
 import { registerZ80Themes } from "../editor/z80Theme";
 import { useApp } from "../state/AppState";
 
@@ -36,6 +40,10 @@ export default function EditorPanel(
   useEffect(() => {
     setZ80Diagnostics(settings.diagnostics);
   }, [settings.diagnostics]);
+
+  useEffect(() => {
+    setZ80CompletionCaseMode(settings.completionCase);
+  }, [settings.completionCase]);
 
   const beforeMount = useCallback((monaco: Monaco) => {
     registerZ80Themes(monaco);

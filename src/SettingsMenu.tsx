@@ -13,6 +13,7 @@ import {
 } from "./editor/z80Theme";
 import { Icon } from "./Icon";
 import {
+  isCompletionCaseMode,
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
   TAB_SIZES,
@@ -124,6 +125,7 @@ export default function SettingsMenu() {
   const wordWrapId = useId();
   const minimapId = useId();
   const quickSuggestionsId = useId();
+  const completionCaseId = useId();
   const parameterHintsId = useId();
   const hoverInformationId = useId();
   const renderWhitespaceId = useId();
@@ -302,6 +304,23 @@ export default function SettingsMenu() {
                   updateSettings({ quickSuggestions })
                 }
               />
+              <div className="setting-row">
+                <label htmlFor={completionCaseId}>Suggestion case</label>
+                <select
+                  id={completionCaseId}
+                  onChange={(event) => {
+                    const completionCase = event.target.value;
+                    if (isCompletionCaseMode(completionCase)) {
+                      updateSettings({ completionCase });
+                    }
+                  }}
+                  value={settings.completionCase}
+                >
+                  <option value="upper">Uppercase (l → LD)</option>
+                  <option value="lower">Lowercase (L → ld)</option>
+                  <option value="match">Match typing (l → ld, L → LD)</option>
+                </select>
+              </div>
               <ToggleSetting
                 checked={settings.tabAcceptsSuggestion}
                 description="Accept once; the next Tab indents"
