@@ -1,9 +1,16 @@
+import {
+  DEFAULT_Z80_THEME_ID,
+  isZ80ThemeId,
+  type Z80ThemeId,
+} from "../editor/z80Theme.ts";
+
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 72;
 export const TAB_SIZES = [2, 4, 6, 8] as const;
 
 export interface WorkspaceSettings {
   editorFontSize: number;
+  editorTheme: Z80ThemeId;
   outputFontSize: number;
   tabSize: number;
   insertSpaces: boolean;
@@ -20,6 +27,7 @@ export interface WorkspaceSettings {
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   editorFontSize: 13,
+  editorTheme: DEFAULT_Z80_THEME_ID,
   outputFontSize: 13,
   tabSize: 4,
   insertSpaces: true,
@@ -56,6 +64,9 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
     editorFontSize: isValidFontSize(input.editorFontSize)
       ? input.editorFontSize
       : DEFAULT_WORKSPACE_SETTINGS.editorFontSize,
+    editorTheme: isZ80ThemeId(input.editorTheme)
+      ? input.editorTheme
+      : DEFAULT_WORKSPACE_SETTINGS.editorTheme,
     outputFontSize: isValidFontSize(input.outputFontSize)
       ? input.outputFontSize
       : DEFAULT_WORKSPACE_SETTINGS.outputFontSize,

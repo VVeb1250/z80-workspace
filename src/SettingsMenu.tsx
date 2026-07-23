@@ -7,6 +7,10 @@ import {
   type Ref,
 } from "react";
 import { createPortal } from "react-dom";
+import {
+  isZ80ThemeId,
+  Z80_THEME_OPTIONS,
+} from "./editor/z80Theme";
 import { Icon } from "./Icon";
 import {
   MAX_FONT_SIZE,
@@ -113,6 +117,7 @@ export default function SettingsMenu() {
   const firstControlRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const editorFontId = useId();
+  const editorThemeId = useId();
   const tabSizeId = useId();
   const insertSpacesId = useId();
   const outputFontId = useId();
@@ -225,6 +230,23 @@ export default function SettingsMenu() {
                   }
                   value={settings.editorFontSize}
                 />
+              </div>
+              <div className="setting-row">
+                <label htmlFor={editorThemeId}>Color theme</label>
+                <select
+                  id={editorThemeId}
+                  onChange={(event) => {
+                    const editorTheme = event.target.value;
+                    if (isZ80ThemeId(editorTheme)) {
+                      updateSettings({ editorTheme });
+                    }
+                  }}
+                  value={settings.editorTheme}
+                >
+                  {Z80_THEME_OPTIONS.map(({ id, label }) => (
+                    <option key={id} value={id}>{label}</option>
+                  ))}
+                </select>
               </div>
               <div className="setting-row">
                 <label htmlFor={tabSizeId}>Tab width</label>

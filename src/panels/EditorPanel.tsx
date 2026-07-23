@@ -4,7 +4,7 @@ import type { IDockviewPanelProps } from "dockview-react";
 import { runZ80TabAction } from "../editor/tabAction";
 import { Z80_LANGUAGE_ID } from "../editor/z80language";
 import { registerZ80LanguageSupport, setZ80Diagnostics } from "../editor/z80Support";
-import { registerZ80Theme, Z80_THEME_ID } from "../editor/z80Theme";
+import { registerZ80Themes } from "../editor/z80Theme";
 import { useApp } from "../state/AppState";
 
 // Each editor tab is bound to one file, passed via dockview panel params.
@@ -37,7 +37,7 @@ export default function EditorPanel(
   }, [settings.diagnostics]);
 
   const beforeMount = useCallback((monaco: Monaco) => {
-    registerZ80Theme(monaco);
+    registerZ80Themes(monaco);
     registerZ80LanguageSupport(monaco);
   }, []);
 
@@ -70,7 +70,7 @@ export default function EditorPanel(
     <div className="panel-fill" onFocus={() => setActiveFile(name)}>
       <Editor
         language={Z80_LANGUAGE_ID}
-        theme={Z80_THEME_ID}
+        theme={settings.editorTheme}
         path={name}
         value={contentOf(name)}
         onChange={(v) => updateSource(name, v ?? "")}
