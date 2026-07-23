@@ -11,7 +11,7 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
   assert.deepEqual(
     normalizeWorkspaceSettings({
       editorFontSize: 16,
-      editorTheme: "z80-light",
+      theme: "z80-light",
       outputFontSize: 14,
       tabSize: 8,
       insertSpaces: false,
@@ -27,7 +27,7 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
     }),
     {
       editorFontSize: 16,
-      editorTheme: "z80-light",
+      theme: "z80-light",
       outputFontSize: 14,
       tabSize: 8,
       insertSpaces: false,
@@ -55,9 +55,9 @@ test("keeps Tab suggestion acceptance disabled by default", () => {
 });
 
 test("defaults unsupported editor themes to Z80 Dark", () => {
-  assert.equal(DEFAULT_WORKSPACE_SETTINGS.editorTheme, "z80-dark");
+  assert.equal(DEFAULT_WORKSPACE_SETTINGS.theme, "z80-dark");
   assert.equal(
-    normalizeWorkspaceSettings({ editorTheme: "neon-rainbow" }).editorTheme,
+    normalizeWorkspaceSettings({ theme: "neon-rainbow" }).theme,
     "z80-dark",
   );
 });
