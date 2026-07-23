@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  COMPLETION_CASE_MODES,
   DEFAULT_WORKSPACE_SETTINGS,
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
@@ -22,6 +23,7 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       hoverInformation: false,
       renderWhitespace: true,
       tabAcceptsSuggestion: true,
+      completionCase: "lower",
       diagnostics: false,
       lineNumbers: false,
       tutorialSeen: true,
@@ -40,6 +42,7 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       hoverInformation: false,
       renderWhitespace: true,
       tabAcceptsSuggestion: true,
+      completionCase: "lower",
       diagnostics: false,
       lineNumbers: false,
       tutorialSeen: true,
@@ -56,6 +59,15 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
 test("keeps Tab suggestion acceptance disabled by default", () => {
   assert.equal(DEFAULT_WORKSPACE_SETTINGS.tabAcceptsSuggestion, false);
   assert.equal(normalizeWorkspaceSettings({}).tabAcceptsSuggestion, false);
+});
+
+test("defaults completion casing to uppercase and accepts all supported modes", () => {
+  assert.deepEqual(COMPLETION_CASE_MODES, ["upper", "lower", "match"]);
+  assert.equal(DEFAULT_WORKSPACE_SETTINGS.completionCase, "upper");
+  assert.equal(normalizeWorkspaceSettings({}).completionCase, "upper");
+  assert.equal(normalizeWorkspaceSettings({ completionCase: "lower" }).completionCase, "lower");
+  assert.equal(normalizeWorkspaceSettings({ completionCase: "match" }).completionCase, "match");
+  assert.equal(normalizeWorkspaceSettings({ completionCase: "mixed" }).completionCase, "upper");
 });
 
 test("defaults unsupported editor themes to Z80 Dark", () => {
