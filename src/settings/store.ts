@@ -14,6 +14,8 @@ export interface WorkspaceSettings {
   hoverInformation: boolean;
   renderWhitespace: boolean;
   tabAcceptsSuggestion: boolean;
+  diagnostics: boolean;
+  lineNumbers: boolean;
 }
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
@@ -28,6 +30,8 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   hoverInformation: true,
   renderWhitespace: false,
   tabAcceptsSuggestion: false,
+  diagnostics: true,
+  lineNumbers: true,
 };
 
 const STORAGE_KEY = "z80ws.settings.v1";
@@ -90,6 +94,14 @@ export function normalizeWorkspaceSettings(value: unknown): WorkspaceSettings {
       typeof input.tabAcceptsSuggestion === "boolean"
         ? input.tabAcceptsSuggestion
         : DEFAULT_WORKSPACE_SETTINGS.tabAcceptsSuggestion,
+    diagnostics:
+      typeof input.diagnostics === "boolean"
+        ? input.diagnostics
+        : DEFAULT_WORKSPACE_SETTINGS.diagnostics,
+    lineNumbers:
+      typeof input.lineNumbers === "boolean"
+        ? input.lineNumbers
+        : DEFAULT_WORKSPACE_SETTINGS.lineNumbers,
   };
 }
 

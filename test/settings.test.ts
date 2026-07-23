@@ -21,6 +21,8 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       hoverInformation: false,
       renderWhitespace: true,
       tabAcceptsSuggestion: true,
+      diagnostics: false,
+      lineNumbers: false,
     }),
     {
       editorFontSize: 16,
@@ -34,6 +36,8 @@ test("keeps valid workspace settings and replaces unsupported values", () => {
       hoverInformation: false,
       renderWhitespace: true,
       tabAcceptsSuggestion: true,
+      diagnostics: false,
+      lineNumbers: false,
     },
   );
 

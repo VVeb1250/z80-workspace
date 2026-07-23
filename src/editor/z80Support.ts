@@ -3,7 +3,9 @@ import type { editor, Position } from "monaco-editor";
 import {
   Z80_DIRECTIVES,
   Z80_LANGUAGE_ID,
+  Z80_MNEMONIC_COL,
   Z80_MNEMONICS,
+  Z80_OPERAND_COL,
   Z80_REGISTERS,
   z80Config,
   z80Language,
@@ -115,18 +117,152 @@ function activeInstruction(lineBeforeCursor: string): string | undefined {
   return code.split(/\s+/, 1)[0]?.toLowerCase();
 }
 
+// Lowercase suggestions when the user is typing lowercase, else uppercase.
+function matchCase(text: string, typed: string): string {
+  const lower = typed.length > 0 && typed === typed.toLowerCase();
+  return lower ? text.toLowerCase() : text.toUpperCase();
+}
+
+// Mnemonics with operands get padded to the operand column, cursor left there.
+// No snippet placeholders -- they fight the suggest widget and Enter splits the
+// line. Operand names still show via signature help.
+function mnemonicInsert(name: string, key: string, startCol: number): string {
+  const sig = SIGNATURES[key]?.[0];
+  const sp = sig ? sig.indexOf(" ") : -1;
+  if (!sig || sp < 0) return name;
+  const pad = " ".repeat(Math.max(1, Z80_OPERAND_COL - (startCol + name.length)));
+  return name + pad;
+}
+
+const NUMBER_LIKE = /^(?:\$|%|\d|[0-9A-Fa-f]+[hH]$|[01]+[bB]$)/;
+
+let diagnosticsOn = true;
+let monacoRef: Monaco | null = null;
+
+// Toggle live diagnostics (settings). Re-validates or clears every z80 model.
+export function setZ80Diagnostics(enabled: boolean): void {
+  diagnosticsOn = enabled;
+  if (!monacoRef) return;
+  for (const model of monacoRef.editor.getModels()) {
+    if (model.getLanguageId() !== Z80_LANGUAGE_ID) continue;
+    if (enabled) validateZ80Model(monacoRef, model);
+    else monacoRef.editor.setModelMarkers(model, "z80", []);
+  }
+}
+
+// Live diagnostics: unknown mnemonics, undefined jump targets, 0x hex.
+function validateZ80Model(
+  monaco: Monaco,
+  model: editor.ITextModel,
+): void {
+  if (!diagnosticsOn) return;
+  const text = model.getValue();
+  const known = new Set(collectZ80Labels(text).map((l) => l.toLowerCase()));
+  const macro = /^\s*([A-Za-z_.$][\w.$]*)\s+MACRO\b/gim;
+  for (let m; (m = macro.exec(text)); ) known.add(m[1].toLowerCase());
+  const mnemonics = new Set(Z80_MNEMONICS);
+  const directives = new Set(Z80_DIRECTIVES);
+  const conditions = new Set(CONDITIONS.map((c) => c.toLowerCase()));
+  const markers: editor.IMarkerData[] = [];
+  const warn = (line: number, col: number, len: number, message: string) =>
+    markers.push({
+      severity: monaco.MarkerSeverity.Warning,
+      message,
+      startLineNumber: line,
+      startColumn: col,
+      endLineNumber: line,
+      endColumn: col + len,
+    });
+
+  for (let ln = 1; ln <= model.getLineCount(); ln++) {
+    const raw = model.getLineContent(ln);
+    const code = raw.includes(";") ? raw.slice(0, raw.indexOf(";")) : raw;
+    for (let h; (h = /\b0x[0-9A-Fa-f]+\b/gi.exec(code)); ) {
+      warn(ln, h.index + 1, h[0].length, "Cross-16 hex is NNh or $NN, not 0x.");
+      break;
+    }
+    const rest = code.replace(/^\s*[A-Za-z_.$][\w.$]*:\s*/, "").trim();
+    if (!rest) continue;
+    const tokens = rest.split(/\s+/);
+    const first = tokens[0];
+    if (tokens[1] && /^(equ|macro|=)$/i.test(tokens[1])) continue;
+    if (first.startsWith(".")) continue;
+    const low = first.toLowerCase();
+
+    if (!mnemonics.has(low) && !directives.has(low)) {
+      if (!known.has(low) && /^[A-Za-z_.$][\w.$]*$/.test(first)) {
+        warn(ln, raw.indexOf(first) + 1, first.length, `Unknown instruction '${first}'.`);
+      }
+      continue;
+    }
+    if (JUMP_INSTRUCTIONS.has(low)) {
+      const ops = rest
+        .slice(first.length)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const target = ops[ops.length - 1];
+      if (
+        target &&
+        /^[A-Za-z_.][\w.]*$/.test(target) &&
+        !NUMBER_LIKE.test(target) &&
+        !conditions.has(target.toLowerCase()) &&
+        !Z80_REGISTERS.includes(target.toLowerCase()) &&
+        !known.has(target.toLowerCase())
+      ) {
+        warn(ln, raw.indexOf(target) + 1, target.length, `Undefined label '${target}'.`);
+      }
+    }
+  }
+  monaco.editor.setModelMarkers(model, "z80", markers);
+}
+
 let registered = false;
 
 export function registerZ80LanguageSupport(monaco: Monaco): void {
   if (registered) return;
   registered = true;
+  monacoRef = monaco;
 
   monaco.languages.register({ id: Z80_LANGUAGE_ID });
   monaco.languages.setMonarchTokensProvider(Z80_LANGUAGE_ID, z80Language);
-  monaco.languages.setLanguageConfiguration(Z80_LANGUAGE_ID, z80Config);
+  // After a label line, indent the next line to the mnemonic column.
+  monaco.languages.setLanguageConfiguration(Z80_LANGUAGE_ID, {
+    ...z80Config,
+    onEnterRules: [
+      {
+        beforeText: /^[A-Za-z_.$][\w.$]*:.*$/,
+        action: {
+          indentAction: monaco.languages.IndentAction.None,
+          appendText: " ".repeat(Z80_MNEMONIC_COL),
+        },
+      },
+    ],
+  });
+
+  // Debounced live diagnostics per z80 model.
+  const timers = new Map<editor.ITextModel, number>();
+  const schedule = (model: editor.ITextModel) => {
+    window.clearTimeout(timers.get(model));
+    timers.set(
+      model,
+      window.setTimeout(() => validateZ80Model(monaco, model), 300),
+    );
+  };
+  const attach = (model: editor.ITextModel) => {
+    if (model.getLanguageId() !== Z80_LANGUAGE_ID) return;
+    validateZ80Model(monaco, model);
+    model.onDidChangeContent(() => schedule(model));
+    model.onWillDispose(() => {
+      window.clearTimeout(timers.get(model));
+      timers.delete(model);
+    });
+  };
+  monaco.editor.getModels().forEach(attach);
+  monaco.editor.onDidCreateModel(attach);
 
   monaco.languages.registerCompletionItemProvider(Z80_LANGUAGE_ID, {
-    triggerCharacters: [" ", ",", "("],
+    triggerCharacters: [" ", "("],
     provideCompletionItems(model: editor.ITextModel, position: Position) {
       const line = model.getLineContent(position.lineNumber);
       const lineBeforeCursor = line.slice(0, position.column - 1);
@@ -142,6 +278,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
       );
       const instruction = activeInstruction(lineBeforeCursor);
       const labels = collectZ80Labels(model.getValue());
+      const typed = word.word;
       const suggestions: Array<ReturnType<typeof completion>> = [];
 
       function completion(
@@ -150,13 +287,14 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
         detail: string,
         sortText: string,
         documentation?: string,
+        insertText?: string,
       ) {
         return {
           label,
           kind,
           detail,
           documentation,
-          insertText: label,
+          insertText: insertText ?? label,
           range,
           sortText,
         };
@@ -165,6 +303,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
       if (mode === "root") {
         for (const mnemonic of Z80_MNEMONICS) {
           const upper = mnemonic.toUpperCase();
+          const name = matchCase(mnemonic, typed);
           suggestions.push(
             completion(
               upper,
@@ -172,6 +311,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
               SIGNATURES[mnemonic]?.join(" · ") ?? "Z80 instruction",
               `1_${upper}`,
               DESCRIPTIONS[mnemonic],
+              mnemonicInsert(name, mnemonic, word.startColumn - 1),
             ),
           );
         }
@@ -184,6 +324,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
               "Cross-16 directive",
               `2_${upper}`,
               DIRECTIVE_DESCRIPTIONS[directive],
+              matchCase(directive, typed),
             ),
           );
         }
@@ -207,6 +348,8 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
                   monaco.languages.CompletionItemKind.EnumMember,
                   "Condition code",
                   `1_${condition}`,
+                  undefined,
+                  matchCase(condition, typed),
                 ),
               );
             }
@@ -242,6 +385,8 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
                 monaco.languages.CompletionItemKind.Variable,
                 "Z80 register or condition",
                 `1_${upper}`,
+                undefined,
+                matchCase(register, typed),
               ),
             );
           }
@@ -252,6 +397,8 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
                 monaco.languages.CompletionItemKind.EnumMember,
                 "Condition code",
                 `1_${condition}`,
+                undefined,
+                matchCase(condition, typed),
               ),
             );
           }
@@ -284,7 +431,7 @@ export function registerZ80LanguageSupport(monaco: Monaco): void {
       const contents = [];
       if (description) contents.push({ value: `**${word.word.toUpperCase()}** — ${description}` });
       if (signatures) contents.push({ value: signatures.map((item) => `\`${item}\``).join("  \n") });
-      if (Z80_REGISTERS.includes(key)) contents.push({ value: `**${word.word.toUpperCase()}** — Z80 register or condition code.` });
+      if (Z80_REGISTERS.includes(key) && !description && !signatures) contents.push({ value: `**${word.word.toUpperCase()}** — Z80 register or condition code.` });
       return {
         contents,
         range: new monaco.Range(

@@ -123,6 +123,8 @@ export default function SettingsMenu() {
   const hoverInformationId = useId();
   const renderWhitespaceId = useId();
   const tabAcceptsSuggestionId = useId();
+  const diagnosticsId = useId();
+  const lineNumbersId = useId();
 
   const close = (restoreFocus = false) => {
     setOpen(false);
@@ -257,6 +259,12 @@ export default function SettingsMenu() {
                 label="Minimap"
                 onChange={(minimap) => updateSettings({ minimap })}
               />
+              <ToggleSetting
+                checked={settings.lineNumbers}
+                id={lineNumbersId}
+                label="Line numbers"
+                onChange={(lineNumbers) => updateSettings({ lineNumbers })}
+              />
             </section>
 
             <section
@@ -304,6 +312,13 @@ export default function SettingsMenu() {
                 onChange={(renderWhitespace) =>
                   updateSettings({ renderWhitespace })
                 }
+              />
+              <ToggleSetting
+                checked={settings.diagnostics}
+                description="Flag unknown mnemonics and undefined labels"
+                id={diagnosticsId}
+                label="Live error checking"
+                onChange={(diagnostics) => updateSettings({ diagnostics })}
               />
             </section>
 

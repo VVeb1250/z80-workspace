@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { IDockviewPanelProps } from "dockview-react";
 import { Z80_LANGUAGE_ID } from "../editor/z80language";
-import { registerZ80LanguageSupport } from "../editor/z80Support";
+import { registerZ80LanguageSupport, setZ80Diagnostics } from "../editor/z80Support";
 import { useApp } from "../state/AppState";
 
 // Each editor tab is bound to one file, passed via dockview panel params.
@@ -29,6 +29,10 @@ export default function EditorPanel(
       tabSize: settings.tabSize,
     });
   }, [settings.insertSpaces, settings.tabSize]);
+
+  useEffect(() => {
+    setZ80Diagnostics(settings.diagnostics);
+  }, [settings.diagnostics]);
 
   const beforeMount = useCallback((monaco: Monaco) => {
     registerZ80LanguageSupport(monaco);
@@ -84,6 +88,7 @@ export default function EditorPanel(
           fontSize: settings.editorFontSize,
           lineHeight: 20,
           minimap: { enabled: settings.minimap },
+          lineNumbers: settings.lineNumbers ? "on" : "off",
           padding: { top: 8, bottom: 8 },
           renderLineHighlight: "all",
           smoothScrolling: true,
