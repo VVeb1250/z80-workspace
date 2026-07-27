@@ -1,7 +1,7 @@
 {
   "name": "z80-workspace",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "A local-first Z80 assembly IDE, assembler, and simulator.",
   "author": {
     "name": "VVeb1250",
