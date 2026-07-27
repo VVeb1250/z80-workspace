@@ -18,8 +18,8 @@
 
 - **Editor** — Monaco (ตัวเดียวกับ VS Code) + syntax highlight Z80
 - **Assemble** — รัน `C16.EXE` (Cross-16 Meta-Assembler ตัวจริง) ใน DOSBox-WASM → ได้ Intel HEX + listing + สถานะ error
-- **z80sim** — จำลอง ET-Board Simulator (กราฟิกจริง) ในหน้าเดียวกัน, split ข้าง editor
-- **Bridge compile → sim** — ไฟล์ `.h` ที่คอมไพล์ถูกใส่เข้า z80sim ให้อัตโนมัติ กด **L (Load)** พิมพ์ชื่อไฟล์โหลดเข้า memory ได้เลย
+- **Z80sim** — จำลอง ET-Board Simulator (กราฟิกจริง) ในหน้าเดียวกัน, split ข้าง editor
+- **Bridge compile → sim** — ไฟล์ `.h` ที่คอมไพล์ถูกใส่เข้า Z80sim ให้อัตโนมัติ กด **L (Load)** พิมพ์ชื่อไฟล์โหลดเข้า memory ได้เลย
 - **หลายไฟล์** — เปิดเป็น editor tab, เก็บใน localStorage
 - **สถานะ compile ต่อไฟล์** (จุดสีใน Explorer):
   - ⚪ ยังไม่คอมไพล์
@@ -32,8 +32,8 @@
 1. เขียนโค้ด Z80 ในช่อง editor
 2. กด **Assemble (C16)** → ดูผลใน panel Output (Console / Listing / Hex), จุดสถานะไฟล์เป็นเขียว
 3. **Export .hex / .lst** โหลดไฟล์ออกได้
-4. กด **Run z80sim** → simulator เปิดข้าง editor
-5. ใน z80sim กด **L** → Enter → พิมพ์ชื่อไฟล์ hex (เช่น `LAB1.H`) → โค้ดโหลดเข้า memory ตาม ORG
+4. กด **Run Z80sim** → simulator เปิดข้าง editor
+5. ใน Z80sim กด **L** → Enter → พิมพ์ชื่อไฟล์ hex (เช่น `LAB1.H`) → โค้ดโหลดเข้า memory ตาม ORG
 
 > ชื่อไฟล์ hex = ชื่อไฟล์ (แปลงเป็น DOS 8.3 ตัวใหญ่) + `.H` เช่น `lab1.asm` → `LAB1.H`
 
@@ -61,7 +61,7 @@ src/
 ├── state/AppState.tsx    ยกสถานะรวม (ไฟล์ / assemble / sim) เป็น context
 ├── dosbox/
 │   ├── assembler.ts      รัน C16 headless (dosboxDirect) → hex/listing
-│   └── simulator.ts      รัน z80sim กราฟิก (js-dos Dos()) + scope CSS
+│   └── simulator.ts      รัน Z80sim กราฟิก (js-dos Dos()) + scope CSS
 ├── panels/               EditorPanel / ConsolePanel / SimulatorPanel
 ├── ExplorerSidebar.tsx   sidebar + inline new/rename + สถานะ compile
 ├── Dock.tsx              dockview layout
@@ -70,10 +70,10 @@ src/
 public/
 ├── emulators/            wdosbox.wasm + emulators.js (assemble engine)
 ├── jsdos/                js-dos.js/css + wasm (simulator)
-└── micro_processor/      C16.EXE, Z80.TBL, z80sim.exe, ตาราง/ข้อมูล
+└── micro_processor/      C16.EXE, Z80.TBL, Z80sim.exe, ตาราง/ข้อมูล
 ```
 
 ## เครดิต
 
 - `C16.EXE` — Cross-16 Meta-Assembler, Universal Cross-Assemblers (1987)
-- `z80sim.exe` — Z80 ET-Board Simulator, Dept. of Computer Engineering, Khon Kaen University (1997)
+- `Z80sim.exe` — Z80 ET-Board Simulator, Dept. of Computer Engineering, Khon Kaen University (1997)

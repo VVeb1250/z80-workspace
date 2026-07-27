@@ -5,7 +5,7 @@
 import { SAMPLE_SOURCE } from "../editor/z80language";
 
 export interface CompiledArtifact {
-  hex: string; // Intel HEX (C16 -H output) — loadable by z80sim's Load menu
+  hex: string; // Intel HEX (C16 -H output) — loadable by Z80sim's Load menu
   lst: string; // listing
   sourceAtCompile: string; // source snapshot when compiled (for staleness)
 }

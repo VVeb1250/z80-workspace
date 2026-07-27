@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { startSimulator } from "../dosbox/simulator";
 import { useApp } from "../state/AppState";
 
-// The panel's existence == the simulator running. Mounting starts z80sim;
+// The panel's existence == the simulator running. Mounting starts Z80sim;
 // closing the tab (or Stop) removes the panel -> unmount -> stop.
 export default function SimulatorPanel() {
   const { setSimRunning, simHandleRef, compiledHexFiles } = useApp();
@@ -63,7 +63,7 @@ export default function SimulatorPanel() {
         );
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error("z80sim failed to start", e);
+        console.error("Z80sim failed to start", e);
       }
     })();
 

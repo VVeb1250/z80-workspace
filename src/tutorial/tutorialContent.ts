@@ -74,12 +74,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     icon: "play",
     anchor: "run",
     th: {
-      title: "4. Run z80sim",
-      body: "กด Run z80sim เพื่อเปิด z80sim ข้าง editor. ไฟล์ .h ที่คอมไพล์แล้วจะถูกใส่ให้อัตโนมัติ. ในตัว sim กด L → Enter → พิมพ์ชื่อไฟล์ hex (เช่น LAB1.H) เพื่อโหลดโค้ดเข้า memory.",
+      title: "4. Run Z80sim",
+      body: "กด Run Z80sim เพื่อเปิด Z80sim ข้าง editor. ไฟล์ .h ที่คอมไพล์แล้วจะถูกใส่ให้อัตโนมัติ. ในตัว sim กด L → Enter → พิมพ์ชื่อไฟล์ hex (เช่น LAB1.H) เพื่อโหลดโค้ดเข้า memory.",
     },
     en: {
-      title: "4. Run z80sim",
-      body: "Press Run z80sim to open it beside the editor. Your compiled .h files are loaded in automatically. Inside the sim press L → Enter → type the hex filename (e.g. LAB1.H) to load the code into memory.",
+      title: "4. Run Z80sim",
+      body: "Press Run Z80sim to open it beside the editor. Your compiled .h files are loaded in automatically. Inside the sim press L → Enter → type the hex filename (e.g. LAB1.H) to load the code into memory.",
     },
   },
   {

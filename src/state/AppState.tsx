@@ -32,7 +32,7 @@ import {
   type CompileStatus,
 } from "../files/store";
 
-/** DOS 8.3 hex filename z80sim's Load expects, e.g. LAB1.H */
+/** DOS 8.3 hex filename Z80sim's Load expects, e.g. LAB1.H */
 export const hexName = (displayName: string) =>
   dosBaseName(displayName) + ".H";
 
@@ -64,7 +64,7 @@ export interface AppState {
   deleteFile: (name: string) => void;
   commitRename: (oldName: string, input: string) => void;
   statusOf: (name: string) => CompileStatus;
-  /** Compiled .h files (DOS name + bytes) to preload into z80sim. */
+  /** Compiled .h files (DOS name + bytes) to preload into Z80sim. */
   compiledHexFiles: () => { path: string; contents: Uint8Array }[];
   // assemble
   busy: boolean;
@@ -360,7 +360,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           saveFiles(next);
           return next;
         });
-        // If z80sim is already running, drop the fresh .h into its FS so the
+        // If Z80sim is already running, drop the fresh .h into its FS so the
         // user can Load it immediately (L -> Enter -> <name>.h).
         const ci = simHandleRef.current?.ci();
         if (ci) {
@@ -439,13 +439,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       api.removePanel(existing);
       return;
     }
-    // Dock z80sim beside the editor (its own big, readable half) — not with
+    // Dock Z80sim beside the editor (its own big, readable half) — not with
     // the small bottom Output panel.
     const anyEditor = api.panels.find((p) => p.id.startsWith(EDITOR_PREFIX));
     api.addPanel({
       id: "simulator",
       component: "simulator",
-      title: "z80sim",
+      title: "Z80sim",
       position: anyEditor
         ? { referencePanel: anyEditor.id, direction: "right" }
         : undefined,

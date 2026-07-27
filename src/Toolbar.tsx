@@ -74,10 +74,10 @@ export default function Toolbar() {
           className={`tbtn sim-btn ${simRunning ? "running" : "idle"}`}
           data-tour="run"
           onClick={toggleSimulator}
-          title={simRunning ? "Stop z80sim" : "Open and run z80sim"}
+          title={simRunning ? "Stop Z80sim" : "Open and run Z80sim"}
         >
           <Icon name={simRunning ? "stop" : "play"} />
-          <span>{simRunning ? "Stop z80sim" : "Run z80sim"}</span>
+          <span>{simRunning ? "Stop Z80sim" : "Run Z80sim"}</span>
         </button>
       </nav>
       <span
