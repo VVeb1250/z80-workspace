@@ -70,10 +70,10 @@ src/
 public/
 ├── emulators/            wdosbox.wasm + emulators.js (assemble engine)
 ├── jsdos/                js-dos.js/css + wasm (simulator)
-└── micro_processor/      C16.EXE, Z80.TBL, Z80sim.exe, ตาราง/ข้อมูล
+└── micro_processor/      C16.EXE, Z80.TBL, z80sim.exe, ตาราง/ข้อมูล
 ```
 
 ## เครดิต
 
 - `C16.EXE` — Cross-16 Meta-Assembler, Universal Cross-Assemblers (1987)
-- `Z80sim.exe` — Z80 ET-Board Simulator, Dept. of Computer Engineering, Khon Kaen University (1997)
+- `z80sim.exe` — Z80 ET-Board Simulator, Dept. of Computer Engineering, Khon Kaen University (1997)

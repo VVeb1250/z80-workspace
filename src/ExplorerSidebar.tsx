@@ -8,7 +8,7 @@ const TOOL_FILES = [
   "Z80.TBL",
   "ASSEMBLE.DAT",
   "UNASSEM.DAT",
-  "Z80sim.exe",
+  "z80sim.exe",
 ];
 
 type Edit = { mode: "new" } | { mode: "rename"; name: string } | null;

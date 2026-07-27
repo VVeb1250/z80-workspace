@@ -1,6 +1,6 @@
 // Z80sim interactive pane.
 //
-// Z80sim.exe is a graphical (Borland BGI EGA/VGA) DOS app driven by the
+// z80sim.exe is a graphical (Borland BGI EGA/VGA) DOS app driven by the
 // keyboard, so it can't be scripted headless like C16. We hand it to the
 // js-dos v8 *high-level* player (window.Dos), which renders the DOS video to
 // a canvas and wires keyboard/mouse/touch for free — exactly the "don't
@@ -33,8 +33,10 @@ declare global {
 const JSDOS_BASE = import.meta.env.BASE_URL + "jsdos/";
 
 // All micro_processor files Z80sim may touch (its own tables + kit data).
+// NOTE: filenames must match public/micro_processor/ exactly — fetch is
+// case-sensitive on the deployed host.
 const SIM_FILES = [
-  "Z80sim.exe",
+  "z80sim.exe",
   "ASSEMBLE.DAT",
   "UNASSEM.DAT",
   "HEX.DAT",
@@ -163,7 +165,7 @@ export interface SimulatorHandle {
 }
 
 /**
- * Boot Z80sim.exe into the given container element. `extraFiles` (e.g. compiled
+ * Boot z80sim.exe into the given container element. `extraFiles` (e.g. compiled
  * .h hex files) are placed on C: so the user can Load them directly.
  */
 export async function startSimulator(
@@ -190,7 +192,7 @@ export async function startSimulator(
     "[autoexec]",
     "mount c .",
     "c:",
-    "Z80sim.exe",
+    "z80sim.exe",
   ].join("\n");
 
   let ci: CommandInterface | null = null;
