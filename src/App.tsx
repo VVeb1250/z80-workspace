@@ -14,7 +14,7 @@ const clampWidth = (w: number) =>
   Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w));
 
 function Shell() {
-  const { settings, sidebarOpen, toggleSidebar } = useApp();
+  const { settings, sidebarOpen } = useApp();
   const workbenchRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -25,18 +25,6 @@ function Shell() {
   useLayoutEffect(() => {
     applyWorkspaceTheme(document.documentElement, settings.theme);
   }, [settings.theme]);
-
-  // Ctrl+B toggles the sidebar, like VS Code.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        toggleSidebar();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggleSidebar]);
 
   // Drag the divider to resize the Explorer.
   useEffect(() => {

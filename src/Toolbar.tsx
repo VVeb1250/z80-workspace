@@ -19,12 +19,15 @@ export default function Toolbar() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key === "Enter" &&
-        !busy
-      ) {
-        event.preventDefault();
+      const hasCommandKey = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+      const isAssembleShortcut =
+        hasCommandKey && (key === "s" || key === "enter");
+
+      if (!isAssembleShortcut) return;
+
+      event.preventDefault();
+      if (!busy) {
         void onAssemble();
       }
     };
@@ -46,7 +49,7 @@ export default function Toolbar() {
         aria-expanded={sidebarOpen}
         aria-label={sidebarOpen ? "Hide Explorer" : "Show Explorer"}
         className="icon-btn toolbar-icon-btn sb-toggle"
-        title="Toggle sidebar (Ctrl+B)"
+        title="Toggle sidebar"
         onClick={toggleSidebar}
       >
         <Icon name="panel-left" />
@@ -55,15 +58,15 @@ export default function Toolbar() {
       <nav className="toolbar-actions" aria-label="Workspace actions">
         <button
           aria-busy={busy}
-          aria-keyshortcuts="Control+Enter Meta+Enter"
+          aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
           className="tbtn primary"
           data-tour="assemble"
           onClick={() => void onAssemble()}
           disabled={busy}
-          title="Assemble active file (Ctrl+Enter)"
+          title="Assemble active file with C16 (Ctrl+S / Ctrl+Enter)"
         >
           <Icon name={busy ? "loader" : "hammer"} className={busy ? "spin" : ""} />
-          <span>{busy ? "Assembling…" : "Assemble"}</span>
+          <span>{busy ? "Assembling…" : "Assemble (C16)"}</span>
         </button>
         <DownloadMenu />
         <button
@@ -71,10 +74,10 @@ export default function Toolbar() {
           className={`tbtn sim-btn ${simRunning ? "running" : "idle"}`}
           data-tour="run"
           onClick={toggleSimulator}
-          title={simRunning ? "Stop the simulator" : "Open and run the simulator"}
+          title={simRunning ? "Stop z80sim" : "Open and run z80sim"}
         >
           <Icon name={simRunning ? "stop" : "play"} />
-          <span>{simRunning ? "Stop simulator" : "Run simulator"}</span>
+          <span>{simRunning ? "Stop z80sim" : "Run z80sim"}</span>
         </button>
       </nav>
       <span

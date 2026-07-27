@@ -344,13 +344,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const onAssemble = useCallback(async () => {
     setBusy(true);
     setResult(null);
-    focusOutput("console");
     const fileName = active.name;
     const sourceAtCompile = active.content;
     try {
       const r = await assemble(sourceAtCompile, dosBaseName(fileName));
       setResult(r);
-      focusOutput(r.listing ? "listing" : "console");
       if (r.hex) {
         // Persist the compiled artifact against this file.
         setFiles((prev) => {
@@ -383,7 +381,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } finally {
       setBusy(false);
     }
-  }, [active, focusOutput]);
+  }, [active]);
 
   const download = useCallback((name: string, text: string) => {
     const blob = new Blob([text], { type: "text/plain" });

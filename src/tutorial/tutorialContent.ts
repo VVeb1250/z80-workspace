@@ -48,12 +48,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     icon: "hammer",
     anchor: "assemble",
     th: {
-      title: "2. Assemble (Ctrl+Enter)",
-      body: "กดปุ่ม Assemble หรือ Ctrl+Enter เพื่อคอมไพล์ด้วย Cross-16 ตัวจริง. ได้ Intel HEX + listing + จำนวน error.",
+      title: "2. Assemble (Ctrl+S)",
+      body: "กดปุ่ม Assemble (C16), Ctrl+S หรือ Ctrl+Enter เพื่อคอมไพล์ด้วย Cross-16 ตัวจริง. ได้ Intel HEX + listing + จำนวน error.",
     },
     en: {
-      title: "2. Assemble (Ctrl+Enter)",
-      body: "Press the Assemble button or Ctrl+Enter to compile with the real Cross-16 assembler. You get Intel HEX, a listing, and the error count.",
+      title: "2. Assemble (Ctrl+S)",
+      body: "Press Assemble (C16), Ctrl+S, or Ctrl+Enter to compile with the real Cross-16 assembler. You get Intel HEX, a listing, and the error count.",
     },
   },
   {
@@ -74,12 +74,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     icon: "play",
     anchor: "run",
     th: {
-      title: "4. Run simulator",
-      body: "กด Run simulator เพื่อเปิด z80sim ข้าง editor. ไฟล์ .h ที่คอมไพล์แล้วจะถูกใส่ให้อัตโนมัติ. ในตัว sim กด L → Enter → พิมพ์ชื่อไฟล์ hex (เช่น LAB1.H) เพื่อโหลดโค้ดเข้า memory.",
+      title: "4. Run z80sim",
+      body: "กด Run z80sim เพื่อเปิด z80sim ข้าง editor. ไฟล์ .h ที่คอมไพล์แล้วจะถูกใส่ให้อัตโนมัติ. ในตัว sim กด L → Enter → พิมพ์ชื่อไฟล์ hex (เช่น LAB1.H) เพื่อโหลดโค้ดเข้า memory.",
     },
     en: {
-      title: "4. Run the simulator",
-      body: "Press Run simulator to open z80sim beside the editor. Your compiled .h files are loaded in automatically. Inside the sim press L → Enter → type the hex filename (e.g. LAB1.H) to load the code into memory.",
+      title: "4. Run z80sim",
+      body: "Press Run z80sim to open it beside the editor. Your compiled .h files are loaded in automatically. Inside the sim press L → Enter → type the hex filename (e.g. LAB1.H) to load the code into memory.",
     },
   },
   {
@@ -101,11 +101,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     anchor: "help",
     th: {
       title: "6. เปิดคู่มือนี้ซ้ำได้",
-      body: "กดปุ่ม ? บน toolbar เพื่อเปิดหน้านี้อีกครั้งเมื่อไหร่ก็ได้. ปรับ theme / font / ตัวเลือก editor ได้ที่ปุ่มเฟือง Settings. Ctrl+B ซ่อน/แสดง sidebar.",
+      body: "กดปุ่ม ? บน toolbar เพื่อเปิดหน้านี้อีกครั้งเมื่อไหร่ก็ได้. ปรับ theme / font / ตัวเลือก editor ได้ที่ปุ่มเฟือง Settings.",
     },
     en: {
       title: "6. Reopen this guide anytime",
-      body: "Press the ? button on the toolbar to reopen this page whenever you like. Adjust theme / font / editor options from the Settings gear. Ctrl+B toggles the sidebar.",
+      body: "Press the ? button on the toolbar to reopen this page whenever you like. Adjust theme / font / editor options from the Settings gear.",
     },
   },
 ];

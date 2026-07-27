@@ -25,7 +25,7 @@
   - ⚪ ยังไม่คอมไพล์
   - 🟢 คอมไพล์แล้ว ตรงกับโค้ดปัจจุบัน
   - 🟡 คอมไพล์แล้วแต่แก้โค้ดหลังจากนั้น (ต้องคอมไพล์ใหม่)
-- **Dockable panels** — ลาก panel จัดใหม่ได้ (VS Code-style), maximize/restore, toggle sidebar (Ctrl+B)
+- **Dockable panels** — ลาก panel จัดใหม่ได้ (VS Code-style), maximize/restore, toggle sidebar
 
 ## วิธีใช้
 
