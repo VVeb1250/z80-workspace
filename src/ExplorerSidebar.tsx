@@ -22,6 +22,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     activeFile,
     openFile,
     openInstructionReference,
+    openSimGuide,
     createFile,
     importFiles,
     commitRename,
@@ -234,6 +235,17 @@ export default function ExplorerSidebar({ width }: { width: number }) {
           >
             <Icon name="book-open" size={14} />
             <span className="fname">Z80 Instructions</span>
+          </button>
+        </li>
+        <li className="tool-doc">
+          <button
+            className="file-open tool-file-open"
+            onClick={openSimGuide}
+            title="Open the Z80sim key reference"
+            type="button"
+          >
+            <Icon name="book-open" size={14} />
+            <span className="fname">Z80sim Guide</span>
           </button>
         </li>
         {TOOL_FILES.map((file) => (

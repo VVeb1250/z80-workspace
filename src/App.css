@@ -405,6 +405,21 @@ input:focus-visible,
   height: 100%;
 }
 
+.output-actions {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+/* Maximize — the output takes over the dock area, VS Code panel style. */
+.output-footer.maximized {
+  flex: 1 1 auto;
+}
+
+.dock-host.output-maximized .dock-area {
+  display: none;
+}
+
 .output-tab {
   background: transparent;
   border: none;
@@ -1045,9 +1060,10 @@ kbd {
   display: grid;
   grid-template-areas:
     "icon title shortcut"
-    "icon description shortcut";
+    "icon description shortcut"
+    "icon command shortcut";
   grid-template-columns: 18px minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   padding: 11px 12px;
   text-align: left;
 }
@@ -1073,6 +1089,41 @@ kbd {
   line-height: 1.4;
   margin: 2px 0 0;
   text-wrap: pretty;
+}
+
+/* The DOS command the Assemble button runs — shown verbatim so the button maps
+   to the CLI step students already know, and clickable so it runs it. */
+.output-empty .empty-command {
+  background: var(--code-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--fg);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  grid-area: command;
+  justify-self: start;
+  margin-top: 7px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 4px 8px;
+  text-align: left;
+  transition: background 0.1s, border-color 0.1s;
+  white-space: pre;
+}
+
+.output-empty .empty-command:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent-hover);
+}
+
+.output-empty .empty-command:active:not(:disabled) {
+  background: var(--surface-active);
+}
+
+.output-empty .empty-command:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .output-empty kbd {
@@ -1635,6 +1686,153 @@ kbd {
 .instruction-empty .icon { color: var(--fg-dim); }
 .instruction-empty strong { color: var(--fg); font-weight: 500; }
 .instruction-empty span { font-size: 11.5px; }
+
+/* Z80sim guide — same frame as the instruction reference, plus a screen map
+   and the simulator's literal prompt lines. */
+.sim-guide-controls {
+  align-items: center;
+  display: flex;
+  flex: 0 1 420px;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.sim-guide-controls .instruction-search { flex: 1 1 auto; }
+
+.instruction-index-list .sim-key {
+  align-items: center;
+  color: var(--syntax-label);
+  display: flex;
+  gap: 6px;
+  text-transform: none;
+}
+
+.sim-key-large {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  color: var(--syntax-label);
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 20px;
+  margin-right: 10px;
+  padding: 1px 9px;
+  vertical-align: 3px;
+}
+
+.sim-screen-block {
+  background: var(--sim-bg);
+  border: 1px solid var(--border-strong);
+  color: #d8d8d8;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+  overflow-x: auto;
+  padding: 10px 12px;
+}
+
+.sim-steps,
+.sim-notes,
+.sim-legend {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  max-width: 76ch;
+  padding: 0;
+}
+
+.sim-steps,
+.sim-legend {
+  counter-reset: sim-item;
+  list-style: none;
+}
+
+.sim-notes { list-style: none; }
+
+.sim-steps li,
+.sim-notes li,
+.sim-legend li {
+  background: var(--surface);
+  border-left: 2px solid var(--border-strong);
+  display: grid;
+  gap: 2px;
+  padding: 8px 11px;
+}
+
+.sim-legend li { counter-increment: sim-item; }
+.sim-legend li strong::before {
+  background: var(--accent);
+  border-radius: 50%;
+  color: var(--fg-on-accent);
+  content: counter(sim-item);
+  display: inline-grid;
+  font-family: var(--mono);
+  font-size: 10px;
+  height: 16px;
+  margin-right: 7px;
+  place-items: center;
+  width: 16px;
+}
+
+.sim-steps li strong,
+.sim-notes li strong,
+.sim-legend li strong {
+  color: var(--fg-bright);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.sim-steps li span,
+.sim-notes li span,
+.sim-legend li span {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.sim-map-wrap {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(300px, 1.1fr) minmax(240px, 1fr);
+}
+
+.sim-map {
+  border: 1px solid var(--border-strong);
+  height: auto;
+  width: 100%;
+}
+
+.sim-map-screen { fill: #000000; }
+.sim-map-board { fill: #101418; stroke: #2b3138; }
+.sim-map-box { fill: none; stroke: #3d6ea8; }
+.sim-map-mono {
+  fill: #d8d8d8;
+  font-family: var(--mono);
+  font-size: 9px;
+  white-space: pre;
+}
+
+.sim-map-key { fill: #ffd479; }
+.sim-map-caption {
+  fill: #8a929b;
+  font-family: var(--mono);
+  font-size: 9px;
+}
+
+.sim-map-lcd { fill: #1d3d2a; stroke: #3f6b4c; }
+.sim-map-led { fill: #7a1f1f; }
+.sim-map-dip { fill: #d8d8d8; }
+.sim-map-badge { fill: var(--accent); }
+.sim-map-badge-text {
+  fill: var(--fg-on-accent);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+@media (max-width: 980px) {
+  .sim-map-wrap { grid-template-columns: minmax(0, 1fr); }
+}
 
 @media (max-width: 760px) {
   .brand { display: none; }

@@ -108,6 +108,43 @@ export interface AssembleResult {
   stdout: string; // captured console output (best-effort)
   listing: string; // LAB1.LST contents
   hex: string; // LAB1.H (Intel HEX) contents
+  hexFile: string; // DOS name of the hex, e.g. LAB1.H
+}
+
+/**
+ * The DOS command line this step runs. Same one the lab handout has students
+ * type at the prompt — shown in the Console so the button reads as "that
+ * command", not as some web-only build.
+ */
+export const assembleCommand = (dosBase: string) =>
+  `c16 ${dosBase}.ASM -H ${dosBase}.H -L ${dosBase}.LST`;
+
+/** DOSBox prompt line prefixed to captured output. */
+const promptLine = (dosBase: string) => `C:\\>${assembleCommand(dosBase)}\n`;
+
+/**
+ * Turn the raw emulator stream into the transcript a student would see on a
+ * lab PC: drop the DOSBox welcome banner, the Z:\ mount plumbing, the DONE
+ * sentinel and ANSI colour codes, so the console opens on the c16 command
+ * line and its output — nothing else.
+ */
+function cleanConsole(raw: string, dosBase: string): string {
+  const lines = raw
+    // eslint-disable-next-line no-control-regex
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n");
+
+  const start = lines.findIndex((line) =>
+    new RegExp(`^C:\\\\>\\s*c16\\s+${dosBase}\\.ASM`, "i").test(line.trim()),
+  );
+  const body = start === -1 ? [promptLine(dosBase), ...lines] : lines.slice(start);
+
+  const end = body.findIndex((line) => /echo\s+done\s*>/i.test(line));
+  return (end === -1 ? body : body.slice(0, end))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
 }
 
 /** Parse the Cross-16 tail line, e.g. "End of Assembly -- No Errors" / "3 Errors". */
@@ -138,7 +175,7 @@ export async function assemble(
     // re-add the mount + cd ourselves or C: won't exist.
     "mount c .",
     "c:",
-    `c16 ${SRC} -H ${HEX} -L ${LST}`,
+    assembleCommand(dosBase),
     `echo done > ${DONE}`,
   ].join("\n");
   initFs.push({ dosboxConf, jsdosConf: { version: emulators.version } });
@@ -166,16 +203,26 @@ export async function assemble(
   const hex = await tryReadText(ci, HEX);
   await ci.exit();
 
+  const consoleText = cleanConsole(stdout, dosBase);
+
   if (!done) {
     return {
       ok: false,
       errorCount: -1,
-      stdout: stdout + "\n[timeout: assembler did not finish in 15s]",
+      stdout: consoleText + "\n[timeout: assembler did not finish in 15s]",
       listing,
       hex,
+      hexFile: HEX,
     };
   }
 
   const errorCount = parseErrors(stdout + "\n" + listing);
-  return { ok: errorCount === 0, errorCount, stdout, listing, hex };
+  return {
+    ok: errorCount === 0,
+    errorCount,
+    stdout: consoleText,
+    listing,
+    hex,
+    hexFile: HEX,
+  };
 }

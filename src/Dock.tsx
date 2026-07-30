@@ -9,6 +9,7 @@ import "dockview-core/dist/styles/dockview.css";
 import EditorPanel from "./panels/EditorPanel";
 import SimulatorPanel from "./panels/SimulatorPanel";
 import InstructionsPanel from "./panels/InstructionsPanel";
+import SimGuidePanel from "./panels/SimGuidePanel";
 import WelcomePanel from "./panels/WelcomePanel";
 import { RightHeaderActions } from "./panels/HeaderActions";
 import { EDITOR_PREFIX, editorId, useApp } from "./state/AppState";
@@ -20,6 +21,7 @@ const components: any = {
   ),
   simulator: () => <SimulatorPanel />,
   instructions: () => <InstructionsPanel />,
+  simGuide: () => <SimGuidePanel />,
   welcome: () => <WelcomePanel />,
 };
 

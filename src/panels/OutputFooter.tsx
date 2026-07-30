@@ -16,8 +16,14 @@ const clampH = (h: number) => Math.min(MAX_H, Math.max(MIN_H, h));
 // dock — never a dockview panel, so it can't be dragged, reordered, or pushed
 // aside by editor splits. It stays pinned to the bottom, always.
 export default function OutputFooter() {
-  const { activeOutputTab, focusOutput, outputCollapsed, toggleOutputCollapsed } =
-    useApp();
+  const {
+    activeOutputTab,
+    focusOutput,
+    outputCollapsed,
+    toggleOutputCollapsed,
+    outputMaximized,
+    toggleOutputMaximized,
+  } = useApp();
   const rootRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
   const [height, setHeight] = useState(() => {
@@ -66,12 +72,14 @@ export default function OutputFooter() {
   return (
     <section
       aria-label="Output"
-      className={`output-footer ${outputCollapsed ? "collapsed" : ""}`}
+      className={`output-footer ${outputCollapsed ? "collapsed" : ""}${
+        outputMaximized ? " maximized" : ""
+      }`}
       data-tour="output"
       ref={rootRef}
-      style={outputCollapsed ? undefined : { height }}
+      style={outputCollapsed || outputMaximized ? undefined : { height }}
     >
-      {!outputCollapsed && (
+      {!outputCollapsed && !outputMaximized && (
         <div
           aria-label="Resize output"
           aria-orientation="horizontal"
@@ -102,15 +110,29 @@ export default function OutputFooter() {
             </button>
           ))}
         </div>
-        <button
-          aria-expanded={!outputCollapsed}
-          aria-label={outputCollapsed ? "Show output" : "Hide output"}
-          className="dv-action-btn"
-          onClick={toggleOutputCollapsed}
-          title={outputCollapsed ? "Show output" : "Hide output"}
-        >
-          <Icon name={outputCollapsed ? "chevron-up" : "chevron-down"} size={16} />
-        </button>
+        <div className="output-actions">
+          <button
+            aria-label={outputMaximized ? "Restore output" : "Maximize output"}
+            aria-pressed={outputMaximized}
+            className="dv-action-btn"
+            onClick={toggleOutputMaximized}
+            title={outputMaximized ? "Restore output" : "Maximize output"}
+          >
+            <Icon name={outputMaximized ? "restore" : "maximize"} size={16} />
+          </button>
+          <button
+            aria-expanded={!outputCollapsed}
+            aria-label={outputCollapsed ? "Show output" : "Hide output"}
+            className="dv-action-btn"
+            onClick={toggleOutputCollapsed}
+            title={outputCollapsed ? "Show output" : "Hide output"}
+          >
+            <Icon
+              name={outputCollapsed ? "chevron-up" : "chevron-down"}
+              size={16}
+            />
+          </button>
+        </div>
       </div>
       {!outputCollapsed && (
         <div className="output-body">

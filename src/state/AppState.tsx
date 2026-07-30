@@ -10,7 +10,7 @@ import {
 import type { DockviewApi } from "dockview-react";
 import { assemble, type AssembleResult } from "../dosbox/assembler";
 import type { SimulatorHandle } from "../dosbox/simulator";
-import { compiledArtifactFor } from "../files/artifacts";
+import { compiledArtifactFor, formatBytes } from "../files/artifacts";
 import { TOUR_STEPS } from "../tutorial/tutorialContent";
 import {
   DEFAULT_WORKSPACE_SETTINGS,
@@ -46,6 +46,7 @@ export const OUTPUT_HEIGHT = 200;
 export const EDITOR_PREFIX = "file:";
 export const editorId = (name: string) => EDITOR_PREFIX + name;
 export const INSTRUCTIONS_PANEL_ID = "docs:z80-instructions";
+export const SIM_GUIDE_PANEL_ID = "docs:z80sim-guide";
 export const WELCOME_PANEL_ID = "docs:welcome";
 
 export interface AppState {
@@ -56,6 +57,8 @@ export interface AppState {
   setActiveFile: (name: string) => void;
   openFile: (name: string) => void;
   openInstructionReference: () => void;
+  /** Open (or focus) the Z80sim key reference. */
+  openSimGuide: () => void;
   /** Open (or focus) the Welcome / tutorial panel. */
   openWelcome: () => void;
   createFile: (input: string) => void;
@@ -78,6 +81,9 @@ export interface AppState {
   outputCollapsed: boolean;
   expandOutput: () => void;
   toggleOutputCollapsed: () => void;
+  /** Output fills the dock area (VS Code panel maximize). */
+  outputMaximized: boolean;
+  toggleOutputMaximized: () => void;
   onAssemble: () => Promise<void>;
   statusText: string;
   download: (name: string, text: string) => void;
@@ -115,6 +121,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AssembleResult | null>(null);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
+  const [outputMaximized, setOutputMaximized] = useState(false);
   const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>("console");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
@@ -180,47 +187,46 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [setActiveFile],
   );
 
-  const openInstructionReference = useCallback(() => {
-    const api = dockApiRef.current;
-    if (!api) return;
-    const existing = api.getPanel(INSTRUCTIONS_PANEL_ID);
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
-    const anyEditor = api.panels.find((panel) =>
-      panel.id.startsWith(EDITOR_PREFIX),
-    );
-    api.addPanel({
-      id: INSTRUCTIONS_PANEL_ID,
-      component: "instructions",
-      title: "Z80 Instructions",
-      position: anyEditor
-        ? { referencePanel: anyEditor.id, direction: "within" }
-        : undefined,
-    });
-  }, []);
+  // Docs (instruction reference, Z80sim guide, Welcome) all open as a tab
+  // beside the editors, and focus rather than duplicate if already open.
+  const openDocPanel = useCallback(
+    (id: string, component: string, title: string) => {
+      const api = dockApiRef.current;
+      if (!api) return;
+      const existing = api.getPanel(id);
+      if (existing) {
+        existing.api.setActive();
+        return;
+      }
+      const anyEditor = api.panels.find((panel) =>
+        panel.id.startsWith(EDITOR_PREFIX),
+      );
+      api.addPanel({
+        id,
+        component,
+        title,
+        position: anyEditor
+          ? { referencePanel: anyEditor.id, direction: "within" }
+          : undefined,
+      });
+    },
+    [],
+  );
 
-  const openWelcome = useCallback(() => {
-    const api = dockApiRef.current;
-    if (!api) return;
-    const existing = api.getPanel(WELCOME_PANEL_ID);
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
-    const anyEditor = api.panels.find((panel) =>
-      panel.id.startsWith(EDITOR_PREFIX),
-    );
-    api.addPanel({
-      id: WELCOME_PANEL_ID,
-      component: "welcome",
-      title: "Welcome",
-      position: anyEditor
-        ? { referencePanel: anyEditor.id, direction: "within" }
-        : undefined,
-    });
-  }, []);
+  const openInstructionReference = useCallback(
+    () => openDocPanel(INSTRUCTIONS_PANEL_ID, "instructions", "Z80 Instructions"),
+    [openDocPanel],
+  );
+
+  const openSimGuide = useCallback(
+    () => openDocPanel(SIM_GUIDE_PANEL_ID, "simGuide", "Z80sim Guide"),
+    [openDocPanel],
+  );
+
+  const openWelcome = useCallback(
+    () => openDocPanel(WELCOME_PANEL_ID, "welcome", "Welcome"),
+    [openDocPanel],
+  );
 
   const startTour = useCallback(() => {
     setTourStep(0);
@@ -330,10 +336,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // selection are plain state — the footer renders from these.
   const expandOutput = useCallback(() => setOutputCollapsed(false), []);
 
+  // Hiding the output also drops it out of maximize — restoring should never
+  // bring back a full-screen panel the user just dismissed.
   const toggleOutputCollapsed = useCallback(
-    () => setOutputCollapsed((collapsed) => !collapsed),
+    () =>
+      setOutputCollapsed((collapsed) => {
+        if (!collapsed) setOutputMaximized(false);
+        return !collapsed;
+      }),
     [],
   );
+
+  // Maximizing a collapsed output expands it first — otherwise the button
+  // would appear to do nothing.
+  const toggleOutputMaximized = useCallback(() => {
+    setOutputMaximized((maximized) => {
+      if (!maximized) setOutputCollapsed(false);
+      return !maximized;
+    });
+  }, []);
 
   // Select an output channel, expanding the footer if it was collapsed.
   const focusOutput = useCallback((t: OutputTab) => {
@@ -377,6 +398,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         stdout: `Engine error: ${(e as Error).message}`,
         listing: "",
         hex: "",
+        hexFile: hexName(fileName),
       });
     } finally {
       setBusy(false);
@@ -454,11 +476,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const baseName = dosBaseName(active.name).toLowerCase();
   const activeArtifact = compiledArtifactFor(files, active.name);
+  // On success name the artifact that was produced — "No Errors" alone doesn't
+  // answer the question students actually have ("so where is the .H file?").
   const statusText = busy
     ? "Assembling…"
     : result
       ? result.errorCount === 0
-        ? "No Errors"
+        ? result.hex
+          ? `No Errors · ${result.hexFile} (${formatBytes(result.hex.length)})`
+          : "No Errors"
         : result.errorCount > 0
           ? `${result.errorCount} Error(s)`
           : "Failed"
@@ -472,6 +498,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setActiveFile,
     openFile,
     openInstructionReference,
+    openSimGuide,
     openWelcome,
     createFile,
     importFiles,
@@ -490,6 +517,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     outputCollapsed,
     expandOutput,
     toggleOutputCollapsed,
+    outputMaximized,
+    toggleOutputMaximized,
     onAssemble,
     statusText,
     download,

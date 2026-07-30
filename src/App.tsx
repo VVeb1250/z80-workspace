@@ -14,7 +14,7 @@ const clampWidth = (w: number) =>
   Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w));
 
 function Shell() {
-  const { settings, sidebarOpen } = useApp();
+  const { settings, sidebarOpen, outputMaximized } = useApp();
   const workbenchRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -86,7 +86,9 @@ function Shell() {
             />
           </>
         )}
-        <div className="dock-host">
+        <div
+          className={`dock-host${outputMaximized ? " output-maximized" : ""}`}
+        >
           <div className="dock-area">
             <Dock />
           </div>
