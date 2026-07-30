@@ -2,10 +2,9 @@
 // localhost and never runs in the desktop build, so dev and Electron send
 // nothing — these calls are no-ops there.
 //
-// Events exist to answer two questions, each a pair of buttons doing the same
-// job: Explorer hover download vs the Export menu, and the toolbar Assemble
-// button vs the clickable command in the output panel. Whichever side nobody
-// uses can be dropped.
+// Events exist to compare pairs of buttons doing the same job: assembling from
+// the toolbar vs from the output panel, and saving a build product from the
+// output panel vs the Export menu. Whichever side nobody uses can be dropped.
 
 declare global {
   interface Window {
@@ -18,8 +17,8 @@ declare global {
 export type AnalyticsEvent =
   | "assemble-toolbar"
   | "assemble-console-command"
-  | "download-explorer-hex"
-  | "download-explorer-lst"
+  | "download-output-hex"
+  | "download-output-lst"
   | "download-export-asm"
   | "download-export-hex"
   | "download-export-lst";

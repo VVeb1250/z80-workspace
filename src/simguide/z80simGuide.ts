@@ -41,7 +41,7 @@ export const SIM_COMMANDS: SimCommand[] = [
     group: "files",
     screen: [
       "Enter file name or Press 'Esc' to Cancel.",
-      "Filename>> LAB1.H",
+      "Filename>> lab1.h",
       "File load success at 8000h",
     ],
     th: {
@@ -442,11 +442,11 @@ export const SIM_NOTES: SimStep[] = [
   {
     th: {
       name: "ชื่อไฟล์เป็นแบบ DOS 8.3",
-      body: "lab1.asm → LAB1.H — ตัดเหลือ 8 ตัวอักษร ตัดอักขระพิเศษออก. ตอนพิมพ์ที่ Filename>> จะตัวเล็กหรือตัวใหญ่ก็ได้.",
+      body: "lab1.asm → lab1.h — ตัดเหลือ 8 ตัวอักษร ตัดอักขระพิเศษออก. DOS เก็บบนดิสก์เป็น LAB1.H เสมอ แต่พิมพ์ที่ Filename>> ตัวไหนก็ได้.",
     },
     en: {
       name: "File names are DOS 8.3",
-      body: "lab1.asm → LAB1.H — trimmed to eight characters, special characters dropped. Type it in either case at the Filename>> prompt.",
+      body: "lab1.asm → lab1.h — trimmed to eight characters, special characters dropped. DOS always stores it as LAB1.H, but you can type either case at the Filename>> prompt.",
     },
   },
   {

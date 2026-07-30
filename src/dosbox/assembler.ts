@@ -88,8 +88,12 @@ async function tryReadText(
   ci: CommandInterface,
   file: string,
 ): Promise<string> {
-  // The emcripten FS path base is uncertain (Z: vs C:), so try a few forms.
-  for (const p of [file, "C:/" + file, "c:/" + file, "./" + file]) {
+  // Two unknowns: the emscripten FS path base (Z: vs C:) and the case DOS
+  // stored the name in — 8.3 names always land uppercase on disk, whatever
+  // case the command line used. Try every form.
+  const names = [file.toUpperCase(), file];
+  const paths = names.flatMap((n) => [n, "C:/" + n, "c:/" + n, "./" + n]);
+  for (const p of paths) {
     try {
       const bytes = await ci.fsReadFile(p);
       if (bytes && bytes.length > 0) return decode(bytes);
@@ -117,7 +121,7 @@ export interface AssembleResult {
  * command", not as some web-only build.
  */
 export const assembleCommand = (dosBase: string) =>
-  `c16 ${dosBase}.ASM -H ${dosBase}.H -L ${dosBase}.LST`;
+  `c16 ${dosBase}.asm -H ${dosBase}.h -L ${dosBase}.lst`;
 
 /** DOSBox prompt line prefixed to captured output. */
 const promptLine = (dosBase: string) => `C:\\>${assembleCommand(dosBase)}\n`;
@@ -136,7 +140,7 @@ function cleanConsole(raw: string, dosBase: string): string {
     .split("\n");
 
   const start = lines.findIndex((line) =>
-    new RegExp(`^C:\\\\>\\s*c16\\s+${dosBase}\\.ASM`, "i").test(line.trim()),
+    new RegExp(`^C:\\\\>\\s*c16\\s+${dosBase}\\.asm`, "i").test(line.trim()),
   );
   const body = start === -1 ? [promptLine(dosBase), ...lines] : lines.slice(start);
 
@@ -156,11 +160,11 @@ function parseErrors(text: string): number {
 
 export async function assemble(
   source: string,
-  dosBase = "LAB1",
+  dosBase = "lab1",
 ): Promise<AssembleResult> {
-  const SRC = `${dosBase}.ASM`;
-  const HEX = `${dosBase}.H`;
-  const LST = `${dosBase}.LST`;
+  const SRC = `${dosBase}.asm`;
+  const HEX = `${dosBase}.h`;
+  const LST = `${dosBase}.lst`;
 
   const emulators = await getEmulators();
   const initFs: unknown[] = [...(await loadToolFiles())];

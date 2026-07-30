@@ -65,14 +65,22 @@ export function normalizeName(input: string, existing: AsmFile[]): string {
 }
 
 /**
- * Cross-16 / DOSBox needs DOS 8.3 names. Derive an uppercase <=8 char base
- * from a display name so the assemble step writes valid filenames.
+ * Cross-16 / DOSBox need DOS 8.3 names: <=8 chars, no special characters.
+ * Case is kept as the user typed it — DOS is case-insensitive, so this is the
+ * name to show and to type on the command line.
  */
-export function dosBaseName(displayName: string): string {
+export function dos83Base(displayName: string): string {
   const base = displayName
     .replace(/\.asm$/i, "")
     .replace(/[^A-Za-z0-9_]/g, "")
-    .toUpperCase()
     .slice(0, 8);
-  return base || "LAB1";
+  return base || "lab1";
+}
+
+/**
+ * The name DOS actually stores on disk (8.3 is always uppercased there), so
+ * anything reading a file back out of the emulator must ask for this form.
+ */
+export function dosBaseName(displayName: string): string {
+  return dos83Base(displayName).toUpperCase();
 }

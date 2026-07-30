@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { trackEvent } from "../analytics";
 import { Icon } from "../Icon";
 import ConsolePanel from "./ConsolePanel";
 import {
@@ -6,6 +7,7 @@ import {
   OUTPUT_TABS,
   outputTitle,
   useApp,
+  type OutputTab,
 } from "../state/AppState";
 
 const MIN_H = 80;
@@ -17,13 +19,31 @@ const clampH = (h: number) => Math.min(MAX_H, Math.max(MIN_H, h));
 // aside by editor splits. It stays pinned to the bottom, always.
 export default function OutputFooter() {
   const {
+    activeArtifact,
+    activeFile,
     activeOutputTab,
+    baseName,
+    busy,
+    download,
     focusOutput,
+    onAssemble,
     outputCollapsed,
+    statusOf,
     toggleOutputCollapsed,
     outputMaximized,
     toggleOutputMaximized,
   } = useApp();
+  // Build time of the artifacts the Listing / Hex tabs are showing.
+  const builtAt = activeArtifact?.compiledAt
+    ? new Date(activeArtifact.compiledAt).toLocaleTimeString()
+    : null;
+  // The Listing / Hex tabs show a build older than the current source.
+  const stale = statusOf(activeFile) === "stale";
+  // The file a channel is showing. Console is a log, not a file.
+  const fileFor = (tab: OutputTab) =>
+    tab === "hex"
+      ? { name: `${baseName}.h`, text: activeArtifact?.hex }
+      : { name: `${baseName}.lst`, text: activeArtifact?.lst };
   const rootRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
   const [height, setHeight] = useState(() => {
@@ -93,22 +113,87 @@ export default function OutputFooter() {
       )}
       <div className="output-header">
         <div className="output-tabs" role="tablist">
-          {OUTPUT_TABS.map((tab) => (
-            <button
-              aria-selected={!outputCollapsed && activeOutputTab === tab}
-              className={
-                !outputCollapsed && activeOutputTab === tab
-                  ? "output-tab active"
-                  : "output-tab"
-              }
-              key={tab}
-              onClick={() => focusOutput(tab)}
-              role="tab"
-              type="button"
-            >
-              {outputTitle(tab)}
-            </button>
-          ))}
+          {OUTPUT_TABS.map((tab) => {
+            const label = outputTitle(tab, baseName);
+            const file = fileFor(tab);
+            return (
+              // Output tabs have no close button, so that slot carries the
+              // action for what the tab shows: rerun the compiler on Console,
+              // save the file on Listing / Hex.
+              <span className="output-tab-wrap" key={tab} role="presentation">
+                <button
+                  aria-selected={!outputCollapsed && activeOutputTab === tab}
+                  className={
+                    !outputCollapsed && activeOutputTab === tab
+                      ? "output-tab active"
+                      : "output-tab"
+                  }
+                  onClick={() => focusOutput(tab)}
+                  role="tab"
+                  title={
+                    tab === "console"
+                      ? "Compiler messages from the last run"
+                      : builtAt
+                        ? `${label} — built ${builtAt}`
+                        : `${label} — not built yet`
+                  }
+                  type="button"
+                >
+                  {label}
+                  {tab !== "console" && stale && (
+                    <span
+                      aria-label="built from older source"
+                      className="tab-stale"
+                      role="img"
+                    />
+                  )}
+                </button>
+                {tab === "console" ? (
+                  <button
+                    aria-busy={busy}
+                    aria-label={`Assemble ${activeFile} again`}
+                    className="tab-action"
+                    disabled={busy}
+                    onClick={() => {
+                      trackEvent("assemble-console-command");
+                      void onAssemble();
+                    }}
+                    title={`Assemble ${activeFile} again (Ctrl+S)`}
+                    type="button"
+                  >
+                    <Icon
+                      className={busy ? "spin" : ""}
+                      name={busy ? "loader" : "hammer"}
+                      size={13}
+                    />
+                  </button>
+                ) : (
+                  <button
+                    aria-label={`Download ${file.name}`}
+                    className="tab-action"
+                    disabled={!file.text}
+                    onClick={() => {
+                      if (!file.text) return;
+                      trackEvent(
+                        tab === "hex"
+                          ? "download-output-hex"
+                          : "download-output-lst",
+                      );
+                      download(file.name, file.text);
+                    }}
+                    title={
+                      file.text
+                        ? `Download ${file.name}`
+                        : `${file.name} is not built yet`
+                    }
+                    type="button"
+                  >
+                    <Icon name="download" size={13} />
+                  </button>
+                )}
+              </span>
+            );
+          })}
         </div>
         <div className="output-actions">
           <button

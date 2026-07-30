@@ -421,13 +421,72 @@ input:focus-visible,
 }
 
 .output-tab {
+  align-items: center;
   background: transparent;
   border: none;
   border-top: 1px solid transparent;
   color: var(--fg-muted);
   cursor: pointer;
+  display: inline-flex;
   font-size: 12px;
+  gap: 6px;
   padding: 0 12px;
+}
+
+/* Each tab owns the action for what it shows, in the slot a close button
+   would use — so the tab keeps its full label and the action sits with it. */
+/* stretch, not center: the active tab's background has to fill the header's
+   full height the way it did before the action button existed. */
+.output-tab-wrap {
+  align-items: stretch;
+  display: inline-flex;
+  height: 100%;
+  position: relative;
+}
+
+.output-tab-wrap .output-tab { padding-right: 30px; }
+
+.tab-action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: var(--icon-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 20px;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity 80ms linear;
+  width: 20px;
+}
+
+.output-tab-wrap:hover .tab-action,
+.output-tab-wrap:focus-within .tab-action,
+.output-tab-wrap .output-tab.active ~ .tab-action {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tab-action:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--fg-bright);
+}
+
+.tab-action:disabled { color: var(--fg-dim); cursor: default; }
+
+/* The build shown here predates the current source. */
+.tab-stale {
+  background: var(--warn);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
 }
 
 .output-tab:hover {
@@ -621,9 +680,14 @@ kbd {
 }
 
 .icon-btn:hover,
-.dv-action-btn:hover {
+.dv-action-btn:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--fg-bright);
+}
+
+.dv-action-btn:disabled {
+  color: var(--fg-dim);
+  cursor: default;
 }
 
 .toolbar-icon-btn { height: 30px; width: 30px; }
@@ -950,62 +1014,6 @@ kbd {
 .source-files li:focus-within .file-actions {
   opacity: 1;
   pointer-events: auto;
-}
-
-/* Build products nested under the source that produced them. */
-.artifact-item .file-open {
-  font-size: 11.5px;
-  height: 22px;
-  padding-left: 28px;
-}
-
-.artifact-item .fname { color: var(--fg-muted); flex: 0 1 auto; }
-.artifact-item .file-icon { color: var(--icon-muted); }
-.artifact-item:hover .fname { color: var(--fg); }
-.filelist .artifact-item { min-height: 22px; }
-
-.artifact-size {
-  color: var(--fg-dim);
-  flex: 1 1 auto;
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  padding-left: 6px;
-  white-space: nowrap;
-}
-
-/* Read-only build product viewer. */
-.artifact-view {
-  display: flex;
-  flex-direction: column;
-}
-
-.artifact-view > :last-child { flex: 1 1 auto; min-height: 0; }
-
-.artifact-bar {
-  align-items: center;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  color: var(--fg-muted);
-  display: flex;
-  flex: 0 0 auto;
-  font-size: 11.5px;
-  gap: 8px;
-  padding: 5px 10px;
-}
-
-.artifact-bar strong {
-  color: var(--fg-bright);
-  font-family: var(--mono);
-  font-weight: 500;
-}
-
-.artifact-source { color: var(--fg-dim); }
-.artifact-stale {
-  align-items: center;
-  color: var(--warn);
-  display: inline-flex;
-  gap: 4px;
-  margin-left: auto;
 }
 
 .edit-row { padding: 1px 5px 1px 10px; }

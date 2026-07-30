@@ -21,6 +21,7 @@ import {
 } from "../settings/store";
 import {
   compileStatus,
+  dos83Base,
   dosBaseName,
   loadActive,
   loadFiles,
@@ -32,21 +33,24 @@ import {
   type CompileStatus,
 } from "../files/store";
 
-/** DOS 8.3 hex filename Z80sim's Load expects, e.g. LAB1.H */
+/**
+ * Name the hex is written under inside the emulator. Uppercase because that is
+ * how DOS stores an 8.3 name; typing it at Z80sim's prompt is case-insensitive.
+ */
 export const hexName = (displayName: string) =>
   dosBaseName(displayName) + ".H";
 
-/** A build product of one source file. */
-export type ArtifactKind = "hex" | "lst";
-
-/** DOS 8.3 name of a build product, e.g. LAB1.H / LAB1.LST */
-export const artifactName = (displayName: string, kind: ArtifactKind) =>
-  dosBaseName(displayName) + (kind === "hex" ? ".H" : ".LST");
 
 export type OutputTab = "console" | "listing" | "hex";
 /** Bottom output channels, rendered as tabs in the fixed output footer. */
 export const OUTPUT_TABS: OutputTab[] = ["console", "listing", "hex"];
-export const outputTitle = (t: OutputTab) => t[0].toUpperCase() + t.slice(1);
+
+/**
+ * Tab label. Console is the compiler's messages, but the other two *are* files
+ * — naming them after the build product says which file you are looking at.
+ */
+export const outputTitle = (t: OutputTab, base: string) =>
+  t === "console" ? "Console" : t === "listing" ? `${base}.lst` : `${base}.h`;
 /** Default footer height (px) when expanded. */
 export const OUTPUT_HEIGHT = 200;
 
@@ -54,8 +58,6 @@ export const EDITOR_PREFIX = "file:";
 export const editorId = (name: string) => EDITOR_PREFIX + name;
 export const INSTRUCTIONS_PANEL_ID = "docs:z80-instructions";
 export const SIM_GUIDE_PANEL_ID = "docs:z80sim-guide";
-export const artifactPanelId = (name: string, kind: ArtifactKind) =>
-  `artifact:${kind}:${name}`;
 export const WELCOME_PANEL_ID = "docs:welcome";
 
 export interface AppState {
@@ -68,8 +70,6 @@ export interface AppState {
   openInstructionReference: () => void;
   /** Open (or focus) the Z80sim key reference. */
   openSimGuide: () => void;
-  /** Open a build product (.H / .LST) as a read-only tab. */
-  openArtifact: (name: string, kind: ArtifactKind) => void;
   /** Open (or focus) the Welcome / tutorial panel. */
   openWelcome: () => void;
   createFile: (input: string) => void;
@@ -240,16 +240,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [openDocPanel],
   );
 
-  const openArtifact = useCallback(
-    (name: string, kind: ArtifactKind) =>
-      openDocPanel(
-        artifactPanelId(name, kind),
-        "artifact",
-        artifactName(name, kind),
-        { name, kind },
-      ),
-    [openDocPanel],
-  );
 
   const openWelcome = useCallback(
     () => openDocPanel(WELCOME_PANEL_ID, "welcome", "Welcome"),
@@ -396,7 +386,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     const fileName = active.name;
     const sourceAtCompile = active.content;
     try {
-      const r = await assemble(sourceAtCompile, dosBaseName(fileName));
+      const r = await assemble(sourceAtCompile, dos83Base(fileName));
       setResult(r);
       if (r.hex) {
         // Persist the compiled artifact against this file.
@@ -510,7 +500,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const baseName = dosBaseName(active.name).toLowerCase();
+  const baseName = dos83Base(active.name);
   const activeArtifact = compiledArtifactFor(files, active.name);
   // On success name the artifact that was produced — "No Errors" alone doesn't
   // answer the question students actually have ("so where is the .H file?").
@@ -535,7 +525,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     openFile,
     openInstructionReference,
     openSimGuide,
-    openArtifact,
     openWelcome,
     createFile,
     importFiles,

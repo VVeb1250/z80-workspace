@@ -1,8 +1,6 @@
-import { Fragment, useRef, useState } from "react";
-import { trackEvent } from "./analytics";
+import { useRef, useState } from "react";
 import { Icon } from "./Icon";
-import { formatBytes } from "./files/artifacts";
-import { artifactName, useApp, type ArtifactKind } from "./state/AppState";
+import { useApp } from "./state/AppState";
 
 const TOOL_FILES = [
   "C16.EXE",
@@ -30,8 +28,6 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     commitRename,
     deleteFile,
     statusOf,
-    openArtifact,
-    download,
   } = useApp();
 
   const statusTitle: Record<string, string> = {
@@ -79,53 +75,6 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     setTimeout(() => {
       finishing.current = false;
     }, 0);
-  };
-
-  // Build products hang under the source that produced them (VS Code file
-  // nesting), so "this file made these" needs no explanation.
-  const artifactRow = (
-    file: { name: string; compiled?: { hex: string; lst: string; compiledAt?: number } },
-    kind: ArtifactKind,
-  ) => {
-    const text = kind === "hex" ? file.compiled!.hex : file.compiled!.lst;
-    if (!text) return null;
-    const dosName = artifactName(file.name, kind);
-    const saveName = dosName.toLowerCase();
-    const builtAt = file.compiled!.compiledAt;
-    const when = builtAt ? new Date(builtAt).toLocaleTimeString() : null;
-
-    return (
-      <li className="artifact-item" key={`${file.name}:${kind}`}>
-        <button
-          aria-label={`Open ${dosName}, ${formatBytes(text.length)}`}
-          className="file-open artifact-open"
-          onClick={() => openArtifact(file.name, kind)}
-          title={when ? `Open ${dosName} — built ${when}` : `Open ${dosName}`}
-        >
-          <Icon className="file-icon" name="file" size={13} />
-          <span className="fname">{dosName}</span>
-          <span className="artifact-size">{formatBytes(text.length)}</span>
-        </button>
-        <span className="file-actions">
-          <button
-            aria-label={`Download ${saveName}`}
-            className="icon-btn"
-            onClick={(event) => {
-              event.stopPropagation();
-              trackEvent(
-                kind === "hex"
-                  ? "download-explorer-hex"
-                  : "download-explorer-lst",
-              );
-              download(saveName, text);
-            }}
-            title={`Download ${saveName}`}
-          >
-            <Icon name="download" size={14} />
-          </button>
-        </span>
-      </li>
-    );
   };
 
   const inputRow = (key: string) => (
@@ -216,9 +165,9 @@ export default function ExplorerSidebar({ width }: { width: number }) {
 
           const compileStatus = statusOf(file.name);
           return (
-            <Fragment key={file.name}>
             <li
               className={file.name === activeFile ? "active" : ""}
+              key={file.name}
             >
               <button
                 aria-current={file.name === activeFile ? "true" : undefined}
@@ -261,9 +210,6 @@ export default function ExplorerSidebar({ width }: { width: number }) {
                 </button>
               </span>
             </li>
-            {file.compiled && artifactRow(file, "hex")}
-            {file.compiled && artifactRow(file, "lst")}
-            </Fragment>
           );
         })}
         {edit?.mode === "new" && inputRow("__new")}

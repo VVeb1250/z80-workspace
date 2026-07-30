@@ -1,14 +1,15 @@
 import { trackEvent } from "../analytics";
 import { Icon } from "../Icon";
 import { assembleCommand } from "../dosbox/assembler";
-import { dosBaseName } from "../files/store";
 import { useApp, type OutputTab } from "../state/AppState";
 
 // One output channel = one dockview tab (VS Code panel style). The tabs
 // (Console / Listing / Hex) live in the dockview header; this just renders the
 // selected channel's text.
 export default function ConsolePanel({ channel }: { channel: OutputTab }) {
-  const { result, activeArtifact, activeFile, busy, onAssemble, settings } =
+  // baseName follows the file that would actually be assembled (a stale saved
+  // active-file name falls back to the first file, activeFile alone doesn't).
+  const { result, activeArtifact, activeFile, baseName, busy, onAssemble, settings } =
     useApp();
 
   // Console = the last compiler run's messages (an action log). Listing / Hex
@@ -58,7 +59,7 @@ export default function ConsolePanel({ channel }: { channel: OutputTab }) {
           title={`Run this command on ${activeFile}`}
           type="button"
         >
-          <code>{`C:\\>${assembleCommand(dosBaseName(activeFile))}`}</code>
+          <code>{`C:\\>${assembleCommand(baseName)}`}</code>
         </button>
         {channel === "console" && <kbd>Ctrl + Enter</kbd>}
       </div>
