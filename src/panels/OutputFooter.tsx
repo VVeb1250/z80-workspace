@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "../analytics";
 import { Icon } from "../Icon";
+import BuildSuccessActions from "./BuildSuccessActions";
 import ConsolePanel from "./ConsolePanel";
 import {
   OUTPUT_HEIGHT,
@@ -171,7 +172,7 @@ export default function OutputFooter() {
                   <button
                     aria-label={`Download ${file.name}`}
                     className="tab-action"
-                    disabled={!file.text}
+                    disabled={!file.text || stale}
                     onClick={() => {
                       if (!file.text) return;
                       trackEvent(
@@ -182,7 +183,9 @@ export default function OutputFooter() {
                       download(file.name, file.text);
                     }}
                     title={
-                      file.text
+                      stale
+                        ? `${file.name} is stale — assemble again`
+                        : file.text
                         ? `Download ${file.name}`
                         : `${file.name} is not built yet`
                     }
@@ -221,6 +224,7 @@ export default function OutputFooter() {
       </div>
       {!outputCollapsed && (
         <div className="output-body">
+          {activeOutputTab === "console" && <BuildSuccessActions />}
           <ConsolePanel channel={activeOutputTab} />
         </div>
       )}

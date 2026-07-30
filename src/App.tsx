@@ -14,7 +14,13 @@ const clampWidth = (w: number) =>
   Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w));
 
 function Shell() {
-  const { settings, sidebarOpen, outputMaximized } = useApp();
+  const {
+    clearDownloadToast,
+    downloadToast,
+    settings,
+    sidebarOpen,
+    outputMaximized,
+  } = useApp();
   const workbenchRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -50,6 +56,12 @@ function Shell() {
   useEffect(() => {
     localStorage.setItem("sidebarWidth", String(sidebarWidth));
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!downloadToast) return;
+    const timer = window.setTimeout(clearDownloadToast, 2800);
+    return () => window.clearTimeout(timer);
+  }, [clearDownloadToast, downloadToast]);
 
   const startDrag = () => {
     dragging.current = true;
@@ -96,6 +108,11 @@ function Shell() {
         </div>
       </div>
       <GuidedTour />
+      {downloadToast && (
+        <div aria-live="polite" className="download-toast" role="status">
+          {downloadToast}
+        </div>
+      )}
     </div>
   );
 }

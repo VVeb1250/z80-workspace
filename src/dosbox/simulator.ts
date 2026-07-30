@@ -129,6 +129,38 @@ function installCssScoping() {
 
 let jsdosLoad: Promise<DosFn> | null = null;
 
+// emulators.js is a browserify bundle that leaves `module` and `exports` on
+// window — and keeps using them, so they cannot simply be deleted. js-dos.js is
+// UMD: seeing them, it takes the CommonJS branch and never defines window.Dos,
+// which is why the simulator used to die after the first assemble. Hide them
+// for the duration of the js-dos script only, then put them straight back.
+type UmdScope = {
+  module?: { exports?: unknown };
+  exports?: { Dos?: DosFn };
+};
+
+function hideCommonJsGlobals() {
+  const scope = window as unknown as UmdScope;
+  const saved = { module: scope.module, exports: scope.exports };
+  delete scope.module;
+  delete scope.exports;
+  return () => {
+    if (saved.module !== undefined) scope.module = saved.module;
+    if (saved.exports !== undefined) scope.exports = saved.exports;
+  };
+}
+
+/** window.Dos if the UMD global branch ran, else whatever it exported instead. */
+function resolveDosGlobal(scope: UmdScope): DosFn | null {
+  if (window.Dos) return window.Dos;
+  for (const exported of [scope.module?.exports, scope.exports]) {
+    if (typeof exported === "function") return exported as DosFn;
+    const named = (exported as { Dos?: DosFn } | undefined)?.Dos;
+    if (typeof named === "function") return named;
+  }
+  return null;
+}
+
 function loadJsDos(): Promise<DosFn> {
   if (window.Dos) return Promise.resolve(window.Dos);
   if (jsdosLoad) return jsdosLoad;
@@ -141,14 +173,28 @@ function loadJsDos(): Promise<DosFn> {
     css.href = JSDOS_BASE + "js-dos.css";
     document.head.appendChild(css);
     // JS (defines window.Dos)
+    const restoreGlobals = hideCommonJsGlobals();
+    const scope = window as unknown as UmdScope;
     const js = document.createElement("script");
     js.src = JSDOS_BASE + "js-dos.js";
-    js.onload = () =>
-      window.Dos
-        ? resolve(window.Dos)
-        : reject(new Error("js-dos.js loaded but window.Dos missing"));
-    js.onerror = () => reject(new Error("failed to load js-dos.js"));
+    js.onload = () => {
+      const Dos = resolveDosGlobal(scope);
+      restoreGlobals();
+      if (Dos) {
+        window.Dos = Dos;
+        resolve(Dos);
+      } else {
+        reject(new Error("js-dos.js loaded but window.Dos missing"));
+      }
+    };
+    js.onerror = () => {
+      restoreGlobals();
+      reject(new Error("failed to load js-dos.js"));
+    };
     document.head.appendChild(js);
+  });
+  jsdosLoad.catch(() => {
+    jsdosLoad = null; // let the next attempt retry the load
   });
   return jsdosLoad;
 }

@@ -1,6 +1,8 @@
 import { trackEvent } from "../analytics";
 import { Icon } from "../Icon";
 import { assembleCommand } from "../dosbox/assembler";
+import OutputViewer from "./OutputViewer";
+import { forDisplay } from "./outputText";
 import { useApp, type OutputTab } from "../state/AppState";
 
 // One output channel = one dockview tab (VS Code panel style). The tabs
@@ -9,15 +11,28 @@ import { useApp, type OutputTab } from "../state/AppState";
 export default function ConsolePanel({ channel }: { channel: OutputTab }) {
   // baseName follows the file that would actually be assembled (a stale saved
   // active-file name falls back to the first file, activeFile alone doesn't).
-  const { result, activeArtifact, activeFile, baseName, busy, onAssemble, settings } =
-    useApp();
+  const {
+    result,
+    activeArtifact,
+    activeFile,
+    baseName,
+    buildHints,
+    busy,
+    onAssemble,
+    settings,
+    statusOf,
+  } = useApp();
 
   // Console = the last compiler run's messages (an action log). Listing / Hex
   // are per-file build products, so they follow the file being viewed, not
   // whichever file was assembled last.
   const text =
     channel === "console"
-      ? result?.stdout
+      ? result?.stdout ??
+        activeArtifact?.stdout ??
+        (statusOf(activeFile) === "fresh"
+          ? `Build restored from the previous session.\n${baseName}.h and ${baseName}.lst are ready.`
+          : undefined)
       : channel === "listing"
         ? activeArtifact?.lst
         : activeArtifact?.hex;
@@ -66,14 +81,35 @@ export default function ConsolePanel({ channel }: { channel: OutputTab }) {
     );
   }
 
+  if (channel !== "console") {
+    return (
+      <OutputViewer
+        fileName={`${baseName}.${channel === "hex" ? "h" : "lst"}`}
+        text={text}
+      />
+    );
+  }
+
   return (
     <div className="panel-fill">
+      {buildHints.length > 0 && (
+        // C16 says "S" and echoes the line; it never says why. These are the
+        // whole-file causes behind a wall of identical syntax errors.
+        <div className="build-hints" role="note">
+          <Icon name="alert-circle" size={16} />
+          <ul>
+            {buildHints.map((hint) => (
+              <li key={hint}>{hint}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <pre
-        aria-live={channel === "console" ? "polite" : "off"}
+        aria-live="polite"
         className="output"
         style={{ fontSize: `${settings.outputFontSize}px` }}
       >
-        {text}
+        {forDisplay(text)}
       </pre>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { baseNameOf, dos83Base, isDosNameTruncated } from "./files/store";
 import { Icon } from "./Icon";
 import { useApp } from "./state/AppState";
 
@@ -77,6 +78,13 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     }, 0);
   };
 
+  // What DOS will actually call the file being typed. Cross-16 runs in DOSBox,
+  // so anything past 8 characters is dropped — show that before it surprises
+  // the user in the Output tabs.
+  const draftDosBase = dos83Base(draft);
+  const draftTruncated =
+    draft.trim().length > 0 && baseNameOf(draft) !== draftDosBase;
+
   const inputRow = (key: string) => (
     <li className="edit-row" key={key}>
       <input
@@ -99,6 +107,11 @@ export default function ExplorerSidebar({ width }: { width: number }) {
         value={draft}
       />
       <span className="ext-hint">.asm</span>
+      {draftTruncated && (
+        <span className="dos-name-hint" role="note">
+          builds as {draftDosBase}.asm
+        </span>
+      )}
     </li>
   );
 
@@ -106,7 +119,6 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     <aside
       aria-label="Explorer"
       className="app-sidebar"
-      data-tour="explorer"
       style={{ flex: `0 0 ${width}px`, width }}
     >
       <div className="section-title">
@@ -131,6 +143,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
           <button
             aria-label="Create assembly file"
             className="icon-btn"
+            data-tour="write"
             onClick={startNew}
             title="New assembly file"
           >
@@ -164,6 +177,9 @@ export default function ExplorerSidebar({ width }: { width: number }) {
           }
 
           const compileStatus = statusOf(file.name);
+          const dosBase = dos83Base(file.name);
+          const truncated = isDosNameTruncated(file.name);
+          const dosNote = `DOS 8.3 name: builds as ${dosBase}.h and ${dosBase}.lst`;
           return (
             <li
               className={file.name === activeFile ? "active" : ""}
@@ -171,11 +187,17 @@ export default function ExplorerSidebar({ width }: { width: number }) {
             >
               <button
                 aria-current={file.name === activeFile ? "true" : undefined}
-                aria-label={`${file.name}, ${statusTitle[compileStatus]}`}
+                aria-label={
+                  truncated
+                    ? `${file.name}, ${statusTitle[compileStatus]}, ${dosNote}`
+                    : `${file.name}, ${statusTitle[compileStatus]}`
+                }
                 className="file-open"
                 onClick={() => openFile(file.name)}
                 onDoubleClick={() => startRename(file.name)}
-                title={`Open ${file.name}`}
+                title={
+                  truncated ? `Open ${file.name}\n${dosNote}` : `Open ${file.name}`
+                }
               >
                 <span
                   aria-hidden="true"
@@ -184,6 +206,11 @@ export default function ExplorerSidebar({ width }: { width: number }) {
                 />
                 <Icon className="file-icon" name="file-code" size={15} />
                 <span className="fname">{file.name}</span>
+                {truncated && (
+                  <span aria-hidden="true" className="dos-badge" title={dosNote}>
+                    {dosBase}
+                  </span>
+                )}
               </button>
               <span className="file-actions">
                 <button

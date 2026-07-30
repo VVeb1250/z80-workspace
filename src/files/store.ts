@@ -2,11 +2,12 @@
 // localStorage. The micro_processor tool files are NOT stored here — they are
 // read-only kit assets served from /public.
 
-import { SAMPLE_SOURCE } from "../editor/z80language";
+import { SAMPLE_SOURCE } from "../editor/z80language.ts";
 
 export interface CompiledArtifact {
   hex: string; // Intel HEX (C16 -H output) — loadable by Z80sim's Load menu
   lst: string; // listing
+  stdout?: string; // compiler log, persisted so reload keeps a coherent status
   sourceAtCompile: string; // source snapshot when compiled (for staleness)
   compiledAt?: number; // epoch ms; absent on artifacts stored before this field
 }
@@ -52,10 +53,21 @@ export function saveActive(name: string): void {
   localStorage.setItem(ACTIVE_KEY, name);
 }
 
+/**
+ * Strip any source extension, not just .asm — the import picker also accepts
+ * .z80 / .s / .inc / .txt, and leaving those on turns "prog.z80" into
+ * "progz80.asm" once the dot is stripped as a special character.
+ */
+const stripExtension = (input: string) =>
+  input.trim().replace(/\.(asm|z80|s|inc|txt)$/i, "");
+
+/** The base a display name reduces to, before uniquifying. */
+export const baseNameOf = (input: string) =>
+  stripExtension(input).replace(/[^A-Za-z0-9_]/g, "") || "untitled";
+
 /** Ensure a unique "name.asm" for a user-entered base name. */
 export function normalizeName(input: string, existing: AsmFile[]): string {
-  let base = input.trim().replace(/\.asm$/i, "");
-  base = base.replace(/[^A-Za-z0-9_]/g, "") || "untitled";
+  const base = baseNameOf(input);
   let name = base + ".asm";
   let n = 1;
   while (existing.some((f) => f.name.toLowerCase() === name.toLowerCase())) {
@@ -63,6 +75,10 @@ export function normalizeName(input: string, existing: AsmFile[]): string {
   }
   return name;
 }
+
+/** The existing file an import would collide with, if any. */
+export const findByName = (files: AsmFile[], name: string) =>
+  files.find((f) => f.name.toLowerCase() === name.toLowerCase());
 
 /**
  * Cross-16 / DOSBox need DOS 8.3 names: <=8 chars, no special characters.
@@ -75,6 +91,14 @@ export function dos83Base(displayName: string): string {
     .replace(/[^A-Za-z0-9_]/g, "")
     .slice(0, 8);
   return base || "lab1";
+}
+
+/**
+ * True when the Explorer name and the name DOS builds under differ, so the UI
+ * can say "this builds as MYFIRSTP.H" instead of silently truncating.
+ */
+export function isDosNameTruncated(displayName: string): boolean {
+  return displayName.replace(/\.asm$/i, "") !== dos83Base(displayName);
 }
 
 /**

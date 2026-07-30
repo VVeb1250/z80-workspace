@@ -499,10 +499,14 @@ input:focus-visible,
 }
 
 .output-body {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   position: relative;
 }
+
+.output-body > .panel-fill { flex: 1 1 auto; }
 
 .dock {
   --dv-group-view-background-color: var(--bg);
@@ -716,6 +720,126 @@ kbd {
   position: fixed;
   z-index: 1000;
 }
+
+.export-menu {
+  max-width: calc(40vh - 50px);
+  max-height: calc(100vh - 50px);
+  overflow-y: auto;
+  padding: 0;
+}
+
+.export-header {
+  align-items: center;
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.export-header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.export-header strong { color: var(--fg-bright); font-size: 13px; }
+.export-header span { color: var(--fg-muted); font-size: 11px; }
+
+.export-artifacts { display: grid; }
+.export-artifact {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 8px 10px 8px 12px;
+}
+
+.export-artifact > div { display: grid; gap: 2px; min-width: 0; }
+.export-artifact strong {
+  color: var(--fg-bright);
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.export-artifact span { color: var(--fg-muted); font-size: 10.5px; }
+.export-artifact .tbtn { height: 25px; padding-inline: 7px; }
+.export-artifact:last-child { border-bottom: 0; }
+
+/* Whole-menu actions: one icon column, one label column, one meta column. */
+.export-actions {
+  border-top: 1px solid var(--border-strong);
+  display: grid;
+  padding: 4px;
+}
+
+.export-action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: var(--fg);
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  padding: 7px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.export-action:hover:not(:disabled) { background: var(--surface-hover); }
+.export-action:disabled { color: var(--fg-dim); cursor: default; opacity: 0.5; }
+.export-action > .icon { color: var(--icon-muted); }
+.export-action:hover:not(:disabled) > .icon { color: var(--fg-bright); }
+.export-action-label { font-size: 12px; }
+
+.export-action-meta {
+  color: var(--fg-dim);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-action-meta.mono { font-family: var(--mono); }
+.export-action.accent,
+.export-action.accent > .icon { color: var(--fg-bright); }
+
+.build-ready {
+  align-items: center;
+  background: color-mix(in srgb, var(--ok) 7%, var(--surface));
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 6px 8px 6px 12px;
+}
+
+.build-ready-copy {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 170px;
+}
+
+.build-ready-copy > .icon { color: var(--ok); flex: 0 0 auto; }
+.build-ready-copy > div { display: grid; gap: 1px; }
+.build-ready-copy strong { color: var(--fg-bright); font-size: 11.5px; }
+.build-ready-copy span { color: var(--fg-muted); font-size: 10.5px; }
+.build-ready-actions,
+.build-artifact-actions {
+  align-items: center;
+  display: flex;
+  gap: 3px;
+}
+.build-ready-actions { flex-wrap: wrap; justify-content: flex-end; }
+.build-ready-actions .tbtn { height: 26px; font-size: 11px; padding-inline: 7px; }
+.build-artifact-actions {
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+}
+.build-artifact-actions .icon-btn { height: 24px; width: 24px; }
 
 .menu-item {
   align-items: baseline;
@@ -1040,6 +1164,25 @@ kbd {
   margin-left: 4px;
 }
 
+/* DOSBox truncates to 8.3, so the Explorer name is not always the build name. */
+.dos-name-hint {
+  color: var(--warn);
+  flex: 0 0 100%;
+  font-size: 10px;
+  padding: 2px 0 0 2px;
+}
+
+.dos-badge {
+  background: var(--surface-raised);
+  border-radius: 3px;
+  color: var(--fg-dim);
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  margin-left: auto;
+  padding: 1px 4px;
+}
+
 .filelist li.readonly {
   color: var(--fg-dim);
   cursor: default;
@@ -1116,6 +1259,98 @@ kbd {
   scrollbar-width: thin;
   tab-size: 4;
   white-space: pre;
+}
+
+/* Build product viewer (listing / hex): find, wrap, copy. */
+.viewer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.viewer-bar {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 3px;
+  padding: 4px 6px;
+}
+
+.viewer-spacer { flex: 1 1 auto; }
+
+.viewer-find {
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+  color: var(--fg-dim);
+  display: flex;
+  gap: 5px;
+  padding: 0 7px;
+}
+
+.viewer-find:focus-within { border-color: var(--focus); }
+
+.viewer-find input {
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  height: 24px;
+  outline: none;
+  width: 130px;
+}
+
+.viewer-count {
+  color: var(--fg-dim);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.viewer-bar .tbtn { font-size: 11px; height: 24px; padding-inline: 7px; }
+.viewer-toggle.on { background: var(--surface-hover); color: var(--fg-bright); }
+
+.viewer-body { flex: 1 1 auto; }
+.viewer-body.wrap { white-space: pre-wrap; word-break: break-word; }
+
+.viewer-body mark.hit {
+  background: color-mix(in srgb, var(--focus) 45%, transparent);
+  color: inherit;
+}
+
+.viewer-body mark.hit.active {
+  background: var(--focus);
+  color: var(--bg);
+}
+
+/* Why the whole build failed, above C16's wall of one-letter errors. */
+.build-hints {
+  align-items: start;
+  background: color-mix(in srgb, var(--err) 9%, var(--surface));
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.build-hints > .icon { color: var(--err); flex: 0 0 auto; margin-top: 1px; }
+
+.build-hints ul {
+  display: grid;
+  gap: 3px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.build-hints li {
+  color: var(--fg);
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
 .output-empty {
@@ -1207,11 +1442,109 @@ kbd {
 .output::-webkit-scrollbar-corner { background: transparent; }
 
 /* Simulator */
-.panel-fill.sim-wrap {
+.sim-panel {
   background: var(--sim-bg);
+  color: var(--fg);
+}
+
+.sim-uxbar {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 9px;
+  min-height: 34px;
+  padding: 3px 8px;
+}
+
+.sim-focus-badge {
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  color: var(--warn);
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.sim-focus-badge.active { border-color: var(--ok); color: var(--ok); }
+.sim-focus-badge.failed { border-color: var(--err); color: var(--err); }
+
+/* Z80sim reads the hex once, at Load — a rebuild needs an explicit reload. */
+.sim-reload-note {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--fg-bright);
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  gap: 8px;
+  padding: 5px 6px 5px 10px;
+}
+
+.sim-reload-note > .icon { color: var(--warn); flex: 0 0 auto; }
+.sim-reload-note span { flex: 1 1 auto; }
+
+.sim-error-overlay strong { color: var(--err); font-size: 13px; }
+.sim-error-overlay span { max-width: 44ch; word-break: break-word; }
+
+.sim-uxbar code {
+  color: var(--fg-muted);
+  flex: 1 1 auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim-host {
+  background: var(--sim-bg);
+  flex: 1 1 auto;
+  min-height: 0;
+  outline: none;
   position: relative;
 }
-.panel-fill.sim-wrap > * { height: 100%; width: 100%; }
+
+.sim-host:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+.sim-host > * { height: 100%; width: 100%; }
+
+.sim-focus-overlay {
+  align-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  display: grid;
+  gap: 9px;
+  inset: 0;
+  justify-items: center;
+  padding: 20px;
+  position: absolute;
+  text-align: center;
+  z-index: 5;
+}
+
+.sim-focus-overlay span {
+  color: #d8d8d8;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.download-toast {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--ok);
+  bottom: 18px;
+  box-shadow: 0 8px 24px var(--popup-shadow);
+  color: var(--fg-bright);
+  display: flex;
+  font-size: 12px;
+  min-height: 36px;
+  padding: 7px 12px;
+  position: fixed;
+  right: 18px;
+  z-index: 1100;
+}
 
 /* Z80 instruction reference — a flat, searchable IDE documentation view. */
 .sr-only {
@@ -1902,6 +2235,14 @@ kbd {
   .brand { display: none; }
   .export-label { display: none; }
   .toolbar-group .tbtn { padding: 0 6px; }
+  .build-ready {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .build-ready-actions { justify-content: flex-start; }
+  .sim-uxbar { flex-wrap: wrap; }
+  .sim-uxbar code { flex-basis: calc(100% - 170px); }
   .instruction-reference-header {
     align-items: stretch;
     flex-direction: column;
@@ -1925,6 +2266,8 @@ kbd {
   .sim-btn span,
   .status span { display: none; }
   .status { min-width: 20px; padding-inline: 3px; }
+  .export-artifact { grid-template-columns: minmax(0, 1fr) auto; }
+  .export-artifact .tbtn.primary { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

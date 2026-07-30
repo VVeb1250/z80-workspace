@@ -58,6 +58,9 @@ const TOOL_FILES = [
 
 const DONE = "DONE.TXT";
 
+/** How long to wait for C16 to reach its tail line before giving up. */
+export const ASSEMBLE_TIMEOUT_MS = 20000;
+
 let toolCache: { path: string; contents: Uint8Array }[] | null = null;
 
 async function fetchBin(relPath: string): Promise<Uint8Array> {
@@ -196,7 +199,7 @@ export async function assemble(
     if (/End of Assembly|Fatal Error/i.test(stdout)) done = true;
   });
 
-  const deadline = Date.now() + 20000;
+  const deadline = Date.now() + ASSEMBLE_TIMEOUT_MS;
   while (Date.now() < deadline && !done) {
     await sleep(100);
   }
@@ -213,7 +216,9 @@ export async function assemble(
     return {
       ok: false,
       errorCount: -1,
-      stdout: consoleText + "\n[timeout: assembler did not finish in 15s]",
+      stdout:
+        consoleText +
+        `\n[timeout: assembler did not finish in ${ASSEMBLE_TIMEOUT_MS / 1000}s]`,
       listing,
       hex,
       hexFile: HEX,

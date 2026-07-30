@@ -1,28 +1,56 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { startSimulator } from "../dosbox/simulator";
+import { simulatorGuidance } from "../dosbox/simulatorUi";
+import { Icon } from "../Icon";
 import { useApp } from "../state/AppState";
 
 // The panel's existence == the simulator running. Mounting starts Z80sim;
 // closing the tab (or Stop) removes the panel -> unmount -> stop.
 export default function SimulatorPanel() {
-  const { setSimRunning, simHandleRef, compiledHexFiles } = useApp();
-  const elRef = useRef<HTMLDivElement>(null);
+  const {
+    baseName,
+    clearSimHexUpdate,
+    compiledHexFiles,
+    setSimRunning,
+    simHandleRef,
+    simHexUpdate,
+    statusOf,
+    activeFile,
+  } = useApp();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const emulatorRef = useRef<HTMLDivElement>(null);
+  const [simActiveState, setSimActiveState] = useState(false);
+  const [simReady, setSimReady] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  // Bumping this re-runs the boot effect, which is how Retry works.
+  const [bootAttempt, setBootAttempt] = useState(0);
+  const buildReady = statusOf(activeFile) === "fresh";
+  const guidance = simulatorGuidance(
+    simActiveState,
+    `${baseName}.h`,
+    buildReady,
+  );
 
   useEffect(() => {
     let cancelled = false;
     setSimRunning(true);
+    clearSimHexUpdate(); // a fresh boot preloads current hex; nothing to reload
 
     // js-dos preventDefault()s almost every key via a window listener, eating
     // editor keystrokes. Gate it: registered before js-dos, `gate` runs first
     // in the bubble phase and hides keys from js-dos unless the sim is active.
     let simActive = false;
     const withinSim = (t: EventTarget | null) =>
-      t instanceof Node && !!elRef.current?.contains(t);
+      t instanceof Node && !!hostRef.current?.contains(t);
+    const setActive = (active: boolean) => {
+      simActive = active;
+      setSimActiveState(active);
+    };
     const onPointerDown = (e: PointerEvent) => {
-      simActive = withinSim(e.target);
+      setActive(withinSim(e.target));
     };
     const onFocusIn = (e: FocusEvent) => {
-      simActive = withinSim(e.target);
+      setActive(withinSim(e.target));
     };
     // js-dos mis-maps the numpad to KBD_kp* (renders as letters). Send the
     // main-row code instead. Needs NumLock ON to see these keyCodes.
@@ -50,18 +78,23 @@ export default function SimulatorPanel() {
     window.addEventListener("keydown", gate);
     window.addEventListener("keyup", gate);
 
+    setStartError(null);
     (async () => {
-      if (!elRef.current) return;
+      if (!emulatorRef.current) return;
       // let dockview size the panel before js-dos measures the canvas
       await new Promise((r) => requestAnimationFrame(() => r(null)));
-      if (cancelled || !elRef.current) return;
+      if (cancelled || !emulatorRef.current) return;
       try {
         // Preload already-compiled .h files so Load works right away.
         simHandleRef.current = await startSimulator(
-          elRef.current,
+          emulatorRef.current,
           compiledHexFiles(),
         );
+        if (!cancelled) setSimReady(true);
       } catch (e) {
+        // A dead emulator used to leave the badge on "Starting Z80sim…"
+        // forever, with the reason only in the devtools console.
+        if (!cancelled) setStartError((e as Error).message);
         // eslint-disable-next-line no-console
         console.error("Z80sim failed to start", e);
       }
@@ -70,6 +103,7 @@ export default function SimulatorPanel() {
     return () => {
       cancelled = true;
       setSimRunning(false);
+      setSimReady(false);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("focusin", onFocusIn, true);
       window.removeEventListener("keydown", gate);
@@ -77,12 +111,84 @@ export default function SimulatorPanel() {
       simHandleRef.current?.stop().catch(() => {});
       simHandleRef.current = null;
     };
-    // run once for this panel instance
+    // run once per boot attempt
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [bootAttempt]);
 
-  // tabIndex makes the container focusable so the gate counts it as active.
+  const focusSimulator = () => {
+    hostRef.current?.focus();
+  };
+
+  const badge = startError
+    ? "Z80sim could not start"
+    : simReady
+      ? guidance.badge
+      : "Starting Z80sim…";
+
   return (
-    <div ref={elRef} className="panel-fill sim-wrap jsdos-scope" tabIndex={-1} />
+    <div className="panel-fill sim-panel">
+      <div className="sim-uxbar">
+        <span
+          className={`sim-focus-badge ${startError ? "failed" : simActiveState ? "active" : ""}`}
+          role="status"
+        >
+          {badge}
+        </span>
+        <code>{startError ?? guidance.instruction}</code>
+      </div>
+      {simHexUpdate && simReady && !startError && (
+        // Z80sim reads the hex once, at Load. A rebuild lands on C: silently,
+        // so the running machine keeps executing the old program until the
+        // user loads it again.
+        <div className="sim-reload-note" role="status">
+          <Icon name="refresh" size={14} />
+          <span>
+            New build copied to C: — press L → {simHexUpdate} → Enter to reload
+          </span>
+          <button
+            className="icon-btn"
+            onClick={clearSimHexUpdate}
+            title="Dismiss"
+            type="button"
+          >
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+      )}
+      <div
+        aria-label="Z80sim screen"
+        className="sim-host sim-wrap jsdos-scope"
+        ref={hostRef}
+        tabIndex={0}
+      >
+        <div className="sim-emulator" ref={emulatorRef} />
+        {startError && (
+          <div className="sim-focus-overlay sim-error-overlay">
+            <strong>Z80sim could not start</strong>
+            <span>{startError}</span>
+            <button
+              className="tbtn primary"
+              onClick={() => setBootAttempt((attempt) => attempt + 1)}
+              type="button"
+            >
+              <Icon name="refresh" size={15} />
+              Try again
+            </button>
+          </div>
+        )}
+        {!simActiveState && !startError && (
+          <div className="sim-focus-overlay">
+            <button
+              className="tbtn primary"
+              onClick={focusSimulator}
+              type="button"
+            >
+              Click to control Z80sim
+            </button>
+            <span>{guidance.instruction}</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

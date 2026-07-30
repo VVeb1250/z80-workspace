@@ -9,7 +9,7 @@ export default function Toolbar() {
   const {
     onAssemble,
     busy,
-    result,
+    buildState,
     statusText,
     simRunning,
     toggleSimulator,
@@ -36,13 +36,7 @@ export default function Toolbar() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [busy, onAssemble]);
 
-  const statusKind = busy
-    ? "busy"
-    : result
-      ? result.errorCount === 0
-        ? "ok"
-        : "err"
-      : "idle";
+  const statusKind = buildState.kind;
 
   return (
     <header className="toolbar">
@@ -72,7 +66,6 @@ export default function Toolbar() {
           <Icon name={busy ? "loader" : "hammer"} className={busy ? "spin" : ""} />
           <span>{busy ? "Assembling…" : "Assemble (C16)"}</span>
         </button>
-        <DownloadMenu />
         <button
           aria-pressed={simRunning}
           className={`tbtn sim-btn ${simRunning ? "running" : "idle"}`}
@@ -83,6 +76,7 @@ export default function Toolbar() {
           <Icon name={simRunning ? "stop" : "play"} />
           <span>{simRunning ? "Stop Z80sim" : "Run Z80sim"}</span>
         </button>
+        <DownloadMenu />
       </nav>
       <span
         aria-atomic="true"

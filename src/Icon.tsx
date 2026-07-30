@@ -28,6 +28,9 @@ export type IconName =
   | "compass"
   | "arrow-left"
   | "arrow-right"
+  | "copy"
+  | "wrap"
+  | "refresh"
   | "x";
 
 interface IconProps {
@@ -170,6 +173,24 @@ export function Icon({ name, size = 18, className = "" }: IconProps) {
     ),
     "arrow-left": <path d="M19 12H5m0 0 6-6m-6 6 6 6" />,
     "arrow-right": <path d="M5 12h14m0 0-6-6m6 6-6 6" />,
+    copy: (
+      <>
+        <rect x="9" y="9" width="12" height="12" rx="2" />
+        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+      </>
+    ),
+    wrap: (
+      <>
+        <path d="M4 6h16M4 18h6" />
+        <path d="M4 12h13a3 3 0 0 1 0 6h-3m0 0 2-2m-2 2 2 2" />
+      </>
+    ),
+    refresh: (
+      <>
+        <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+        <path d="M20 4v4h-4" />
+      </>
+    ),
     x: <path d="M6 6l12 12M18 6 6 18" />,
   };
 

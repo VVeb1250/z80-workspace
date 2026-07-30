@@ -68,6 +68,15 @@ export const z80Config: languages.LanguageConfiguration = {
   },
 };
 
+/**
+ * Skeleton for a brand-new file. CPU and HOF are not optional: without them
+ * Cross-16 has no opcode table (every mnemonic is a syntax error) and emits no
+ * Intel HEX, so a bare file can never assemble.
+ */
+export const newFileTemplate = (name: string) => `; ${name}
+
+`;
+
 export const SAMPLE_SOURCE = `; lab1.asm - Z80 sample (Cross-16 syntax)
                 CPU     "Z80.TBL"
                 HOF     "INT8"          ; Intel HEX output format

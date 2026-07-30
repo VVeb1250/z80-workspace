@@ -21,7 +21,9 @@ export type AnalyticsEvent =
   | "download-output-lst"
   | "download-export-asm"
   | "download-export-hex"
-  | "download-export-lst";
+  | "download-export-lst"
+  | "download-export-both"
+  | "download-export-all";
 
 export function trackEvent(event: AnalyticsEvent): void {
   window.goatcounter?.count({ path: event, title: event, event: true });

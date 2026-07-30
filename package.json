@@ -18,7 +18,7 @@
     "package:win": "npm run build && electron-builder --win --publish never",
     "package:mac": "npm run build && electron-builder --mac --publish never",
     "package:linux": "npm run build && electron-builder --linux --publish never",
-    "test": "node --test test/artifacts.test.ts test/editor-options.test.ts test/editor-support.test.ts test/editor-theme.test.ts test/electron-server.test.cjs test/instructions.test.ts test/settings.test.ts test/tab-action.test.ts",
+    "test": "node --test --test-isolation=none test/artifacts.test.ts test/diagnostics.test.ts test/downloads.test.ts test/editor-options.test.ts test/editor-support.test.ts test/editor-theme.test.ts test/electron-server.test.cjs test/file-names.test.ts test/instructions.test.ts test/output-text.test.ts test/settings.test.ts test/simulator-ui.test.ts test/tab-action.test.ts test/tutorial.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

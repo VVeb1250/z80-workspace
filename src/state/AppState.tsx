@@ -9,8 +9,24 @@ import {
 } from "react";
 import type { DockviewApi } from "dockview-react";
 import { assemble, type AssembleResult } from "../dosbox/assembler";
+import {
+  buildHints,
+  parseC16Errors,
+  type CompilerDiagnostic,
+} from "../dosbox/diagnostics";
 import type { SimulatorHandle } from "../dosbox/simulator";
-import { compiledArtifactFor, formatBytes } from "../files/artifacts";
+import { shouldAutoMaximizeSimulator } from "../dosbox/simulatorUi";
+import { bulkDownloadReceipt, downloadReceipt } from "../downloads";
+import {
+  allReadyArtifacts,
+  artifactDescriptors,
+  buildPresentation,
+  canPersistBuild,
+  compiledArtifactFor,
+  freshCompiledHexFiles,
+  type ArtifactDescriptor,
+  type BuildPresentation,
+} from "../files/artifacts";
 import { TOUR_STEPS } from "../tutorial/tutorialContent";
 import {
   DEFAULT_WORKSPACE_SETTINGS,
@@ -19,10 +35,13 @@ import {
   saveWorkspaceSettings,
   type WorkspaceSettings,
 } from "../settings/store";
+import { newFileTemplate } from "../editor/z80language";
 import {
+  baseNameOf,
   compileStatus,
   dos83Base,
   dosBaseName,
+  findByName,
   loadActive,
   loadFiles,
   normalizeName,
@@ -60,6 +79,15 @@ export const INSTRUCTIONS_PANEL_ID = "docs:z80-instructions";
 export const SIM_GUIDE_PANEL_ID = "docs:z80sim-guide";
 export const WELCOME_PANEL_ID = "docs:welcome";
 
+interface BuildAttempt {
+  fileName: string;
+  result: AssembleResult;
+  /** Per-line compiler errors, mapped back onto the source. */
+  diagnostics: CompilerDiagnostic[];
+  /** Whole-file explanations for why the build failed. */
+  hints: string[];
+}
+
 export interface AppState {
   files: AsmFile[];
   activeFile: string;
@@ -83,12 +111,18 @@ export interface AppState {
   // assemble
   busy: boolean;
   result: AssembleResult | null;
+  /** Compiler errors for one file, as editor markers. */
+  diagnosticsFor: (name: string) => CompilerDiagnostic[];
+  /** Whole-file explanations for the active file's failed build. */
+  buildHints: string[];
   activeArtifact: CompiledArtifact | undefined;
+  activeArtifacts: ArtifactDescriptor[];
+  buildState: BuildPresentation;
   settings: WorkspaceSettings;
   updateSettings: (changes: Partial<WorkspaceSettings>) => void;
   resetSettings: () => void;
   activeOutputTab: OutputTab;
-  focusOutput: (t: OutputTab) => void;
+  focusOutput: (t: OutputTab, maximize?: boolean) => void;
   outputCollapsed: boolean;
   expandOutput: () => void;
   toggleOutputCollapsed: () => void;
@@ -98,6 +132,12 @@ export interface AppState {
   onAssemble: () => Promise<void>;
   statusText: string;
   download: (name: string, text: string) => void;
+  /** Save several build products in one action (one toast, staggered saves). */
+  downloadMany: (items: { fileName: string; text: string }[]) => void;
+  /** Every up-to-date build product across all files. */
+  readyArtifacts: { fileName: string; text: string }[];
+  downloadToast: string | null;
+  clearDownloadToast: () => void;
   baseName: string;
   // shell
   dockApiRef: React.MutableRefObject<DockviewApi | null>;
@@ -107,6 +147,9 @@ export interface AppState {
   simRunning: boolean;
   setSimRunning: (v: boolean) => void;
   toggleSimulator: () => void;
+  /** DOS name of a hex written into the running sim since it last loaded. */
+  simHexUpdate: string | null;
+  clearSimHexUpdate: () => void;
   // guided tour
   tourActive: boolean;
   tourStep: number;
@@ -130,12 +173,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     () => loadActive() ?? loadFiles()[0].name,
   );
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<AssembleResult | null>(null);
+  const [buildAttempt, setBuildAttempt] = useState<BuildAttempt | null>(null);
+  const [downloadToast, setDownloadToast] = useState<string | null>(null);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
   const [outputMaximized, setOutputMaximized] = useState(false);
   const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>("console");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [simRunning, setSimRunning] = useState(false);
+  const [simHexUpdate, setSimHexUpdate] = useState<string | null>(null);
   const [tourActive, setTourActive] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [settings, setSettings] = useState<WorkspaceSettings>(
@@ -147,6 +192,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const active = useMemo(
     () => files.find((f) => f.name === activeFile) ?? files[0],
     [files, activeFile],
+  );
+  const attempt = buildAttempt?.fileName === active.name ? buildAttempt : null;
+  const result = attempt?.result ?? null;
+  const buildHintsForActive = attempt?.hints ?? [];
+
+  // Markers belong to the file that was assembled, whichever tab is focused.
+  const diagnosticsFor = useCallback(
+    (name: string) =>
+      buildAttempt?.fileName === name ? buildAttempt.diagnostics : [],
+    [buildAttempt],
   );
 
   const contentOf = useCallback(
@@ -271,10 +326,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!trimmed) return;
       setFiles((prev) => {
         const name = normalizeName(trimmed, prev);
-        const next = [
-          ...prev,
-          { name, content: `; ${name}\n\n                END\n` },
-        ];
+        const next = [...prev, { name, content: newFileTemplate(name) }];
         saveFiles(next);
         queueMicrotask(() => openFile(name));
         return next;
@@ -283,8 +335,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [openFile],
   );
 
-  // Import .asm files from disk. Names are normalized (collisions get a
-  // numeric suffix); the last imported file opens as the active editor tab.
+  // Import sources from disk (file picker or drag-drop). Re-importing a name
+  // that already exists offers to replace it — silently making lab11.asm hides
+  // the update the user meant to bring in. Declining keeps both, suffixed.
   const importFiles = useCallback(
     async (fileList: FileList | File[]) => {
       const incoming = Array.from(fileList);
@@ -299,6 +352,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setFiles((prev) => {
         let next = prev;
         for (const { base, content } of read) {
+          const wanted = baseNameOf(base) + ".asm";
+          const clash = findByName(next, wanted);
+          if (
+            clash &&
+            window.confirm(`${clash.name} already exists. Replace its contents?`)
+          ) {
+            // Replacing invalidates the old build: it belongs to the old source.
+            next = next.map((f) =>
+              f.name === clash.name ? { name: f.name, content } : f,
+            );
+            lastName = clash.name;
+            continue;
+          }
           const name = normalizeName(base, next);
           next = [...next, { name, content }];
           lastName = name;
@@ -375,20 +441,29 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Select an output channel, expanding the footer if it was collapsed.
-  const focusOutput = useCallback((t: OutputTab) => {
-    setActiveOutputTab(t);
-    setOutputCollapsed(false);
-  }, []);
+  const focusOutput = useCallback(
+    (t: OutputTab, maximize = false) => {
+      setActiveOutputTab(t);
+      setOutputCollapsed(false);
+      if (maximize) setOutputMaximized(true);
+    },
+    [],
+  );
 
   const onAssemble = useCallback(async () => {
     setBusy(true);
-    setResult(null);
     const fileName = active.name;
     const sourceAtCompile = active.content;
+    setBuildAttempt(null);
     try {
       const r = await assemble(sourceAtCompile, dos83Base(fileName));
-      setResult(r);
-      if (r.hex) {
+      setBuildAttempt({
+        fileName,
+        result: r,
+        diagnostics: parseC16Errors(r.stdout, sourceAtCompile),
+        hints: buildHints(sourceAtCompile, r.errorCount),
+      });
+      if (canPersistBuild(r)) {
         // Persist the compiled artifact against this file.
         setFiles((prev) => {
           const next = prev.map((f) =>
@@ -398,6 +473,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                   compiled: {
                     hex: r.hex,
                     lst: r.listing,
+                    stdout: r.stdout,
                     sourceAtCompile,
                     compiledAt: Date.now(),
                   },
@@ -408,38 +484,82 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           return next;
         });
         // If Z80sim is already running, drop the fresh .h into its FS so the
-        // user can Load it immediately (L -> Enter -> <name>.h).
+        // user can Load it immediately (L -> Enter -> <name>.h). Z80sim does
+        // not notice the file changed, so tell the user to load it again.
         const ci = simHandleRef.current?.ci();
         if (ci) {
           void ci.fsWriteFile(
             hexName(fileName),
             new TextEncoder().encode(r.hex),
           );
+          setSimHexUpdate(hexName(fileName));
         }
       }
     } catch (e) {
-      setResult({
-        ok: false,
-        errorCount: -1,
-        stdout: `Engine error: ${(e as Error).message}`,
-        listing: "",
-        hex: "",
-        hexFile: hexName(fileName),
+      setBuildAttempt({
+        fileName,
+        result: {
+          ok: false,
+          errorCount: -1,
+          stdout: `Engine error: ${(e as Error).message}`,
+          listing: "",
+          hex: "",
+          hexFile: hexName(fileName),
+        },
+        diagnostics: [],
+        hints: [],
       });
     } finally {
       setBusy(false);
     }
   }, [active]);
 
-  const download = useCallback((name: string, text: string) => {
+  const saveToDisk = useCallback((name: string, text: string) => {
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = name;
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, []);
+
+  const download = useCallback(
+    (name: string, text: string) => {
+      saveToDisk(name, text);
+      setDownloadToast(downloadReceipt(name).message);
+    },
+    [saveToDisk],
+  );
+
+  // Browsers throttle back-to-back programmatic downloads, so space them out
+  // instead of firing the whole batch in one tick.
+  const downloadMany = useCallback(
+    (items: { fileName: string; text: string }[]) => {
+      if (!items.length) return;
+      items.forEach((item, index) => {
+        window.setTimeout(
+          () => saveToDisk(item.fileName, item.text),
+          index * 250,
+        );
+      });
+      setDownloadToast(
+        items.length === 1
+          ? downloadReceipt(items[0].fileName).message
+          : bulkDownloadReceipt(items.length).message,
+      );
+    },
+    [saveToDisk],
+  );
+
+  const readyArtifacts = useMemo(() => allReadyArtifacts(files), [files]);
+
+  const clearDownloadToast = useCallback(() => setDownloadToast(null), []);
+
+  const clearSimHexUpdate = useCallback(() => setSimHexUpdate(null), []);
 
   const statusOf = useCallback(
     (name: string): CompileStatus => {
@@ -451,11 +571,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const compiledHexFiles = useCallback(
     () =>
-      files
-        .filter((f) => f.compiled?.hex)
-        .map((f) => ({
-          path: hexName(f.name),
-          contents: new TextEncoder().encode(f.compiled!.hex),
+      freshCompiledHexFiles(files).map(({ fileName, hex }) => ({
+          path: hexName(fileName),
+          contents: new TextEncoder().encode(hex),
         })),
     [files],
   );
@@ -487,10 +605,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       api.removePanel(existing);
       return;
     }
+    setOutputMaximized(false);
     // Dock Z80sim beside the editor (its own big, readable half) — not with
     // the small bottom Output panel.
     const anyEditor = api.panels.find((p) => p.id.startsWith(EDITOR_PREFIX));
-    api.addPanel({
+    const panel = api.addPanel({
       id: "simulator",
       component: "simulator",
       title: "Z80sim",
@@ -498,23 +617,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         ? { referencePanel: anyEditor.id, direction: "right" }
         : undefined,
     });
+    if (shouldAutoMaximizeSimulator(window.innerWidth)) {
+      queueMicrotask(() => panel.api.maximize());
+    }
   }, []);
 
   const baseName = dos83Base(active.name);
   const activeArtifact = compiledArtifactFor(files, active.name);
-  // On success name the artifact that was produced — "No Errors" alone doesn't
-  // answer the question students actually have ("so where is the .H file?").
-  const statusText = busy
-    ? "Assembling…"
-    : result
-      ? result.errorCount === 0
-        ? result.hex
-          ? `No Errors · ${result.hexFile} (${formatBytes(result.hex.length)})`
-          : "No Errors"
-        : result.errorCount > 0
-          ? `${result.errorCount} Error(s)`
-          : "Failed"
-      : "Ready";
+  const activeArtifacts = artifactDescriptors(active);
+  const buildState = buildPresentation(active, result, busy);
+  const statusText = buildState.text;
 
   const value: AppState = {
     files,
@@ -534,7 +646,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     compiledHexFiles,
     busy,
     result,
+    diagnosticsFor,
+    buildHints: buildHintsForActive,
     activeArtifact,
+    activeArtifacts,
+    buildState,
     settings,
     updateSettings,
     resetSettings,
@@ -548,6 +664,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     onAssemble,
     statusText,
     download,
+    downloadMany,
+    readyArtifacts,
+    downloadToast,
+    clearDownloadToast,
     baseName,
     dockApiRef,
     simHandleRef,
@@ -556,6 +676,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     simRunning,
     setSimRunning,
     toggleSimulator,
+    simHexUpdate,
+    clearSimHexUpdate,
     tourActive,
     tourStep,
     startTour,

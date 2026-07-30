@@ -17,8 +17,11 @@ export default function EditorPanel(
   props: IDockviewPanelProps<{ name: string }>,
 ) {
   const name = props.params.name;
-  const { contentOf, updateSource, setActiveFile, settings } = useApp();
+  const { contentOf, diagnosticsFor, updateSource, setActiveFile, settings } =
+    useApp();
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
+  const diagnostics = diagnosticsFor(name);
   const indentationSettingsRef = useRef({
     insertSpaces: settings.insertSpaces,
     tabSize: settings.tabSize,
@@ -45,6 +48,32 @@ export default function EditorPanel(
     setZ80CompletionCaseMode(settings.completionCase);
   }, [settings.completionCase]);
 
+  // Compiler errors as squiggles. Owner "c16" keeps them separate from the
+  // editor's own live diagnostics, so neither clears the other.
+  const diagnosticsRef = useRef(diagnostics);
+  diagnosticsRef.current = diagnostics;
+  const applyMarkers = useCallback(() => {
+    const monaco = monacoRef.current;
+    const model = editorRef.current?.getModel();
+    if (!monaco || !model) return;
+    monaco.editor.setModelMarkers(
+      model,
+      "c16",
+      diagnosticsRef.current
+        .filter((d) => d.line > 0 && d.line <= model.getLineCount())
+        .map((d) => ({
+          severity: monaco.MarkerSeverity.Error,
+          message: d.message,
+          startLineNumber: d.line,
+          endLineNumber: d.line,
+          startColumn: 1,
+          endColumn: model.getLineMaxColumn(d.line),
+        })),
+    );
+  }, []);
+
+  useEffect(applyMarkers, [applyMarkers, diagnostics]);
+
   const beforeMount = useCallback((monaco: Monaco) => {
     registerZ80Themes(monaco);
     registerZ80LanguageSupport(monaco);
@@ -52,6 +81,7 @@ export default function EditorPanel(
 
   const onMount = useCallback<OnMount>((editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
     editor.getModel()?.updateOptions(indentationSettingsRef.current);
 
     const runIndentCommand = (command: "tab" | "outdent") => {
@@ -73,7 +103,9 @@ export default function EditorPanel(
       precondition: "editorTextFocus && !editorReadonly",
       run: () => runIndentCommand("outdent"),
     });
-  }, []);
+
+    applyMarkers(); // a panel reopened after a build still shows its errors
+  }, [applyMarkers]);
 
   return (
     <div className="panel-fill" onFocus={() => setActiveFile(name)}>
