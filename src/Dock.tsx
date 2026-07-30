@@ -10,6 +10,7 @@ import EditorPanel from "./panels/EditorPanel";
 import SimulatorPanel from "./panels/SimulatorPanel";
 import InstructionsPanel from "./panels/InstructionsPanel";
 import SimGuidePanel from "./panels/SimGuidePanel";
+import ArtifactPanel from "./panels/ArtifactPanel";
 import WelcomePanel from "./panels/WelcomePanel";
 import { RightHeaderActions } from "./panels/HeaderActions";
 import { EDITOR_PREFIX, editorId, useApp } from "./state/AppState";
@@ -22,6 +23,9 @@ const components: any = {
   simulator: () => <SimulatorPanel />,
   instructions: () => <InstructionsPanel />,
   simGuide: () => <SimGuidePanel />,
+  artifact: (
+    props: IDockviewPanelProps<{ name: string; kind: "hex" | "lst" }>,
+  ) => <ArtifactPanel {...props} />,
   welcome: () => <WelcomePanel />,
 };
 

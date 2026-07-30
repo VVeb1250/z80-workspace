@@ -1,3 +1,4 @@
+import { trackEvent } from "../analytics";
 import { Icon } from "../Icon";
 import { assembleCommand } from "../dosbox/assembler";
 import { dosBaseName } from "../files/store";
@@ -50,7 +51,10 @@ export default function ConsolePanel({ channel }: { channel: OutputTab }) {
           aria-busy={busy}
           className="empty-command"
           disabled={busy}
-          onClick={() => void onAssemble()}
+          onClick={() => {
+            trackEvent("assemble-console-command");
+            void onAssemble();
+          }}
           title={`Run this command on ${activeFile}`}
           type="button"
         >

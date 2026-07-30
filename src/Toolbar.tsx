@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { trackEvent } from "./analytics";
 import DownloadMenu from "./DownloadMenu";
 import { Icon } from "./Icon";
 import SettingsMenu from "./SettingsMenu";
@@ -61,7 +62,10 @@ export default function Toolbar() {
           aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter"
           className="tbtn primary"
           data-tour="assemble"
-          onClick={() => void onAssemble()}
+          onClick={() => {
+            trackEvent("assemble-toolbar");
+            void onAssemble();
+          }}
           disabled={busy}
           title="Assemble active file with C16 (Ctrl+S / Ctrl+Enter)"
         >

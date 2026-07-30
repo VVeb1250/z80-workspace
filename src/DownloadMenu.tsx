@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { trackEvent, type AnalyticsEvent } from "./analytics";
 import { Icon } from "./Icon";
 import { useApp } from "./state/AppState";
 
@@ -63,7 +64,8 @@ export default function DownloadMenu() {
     };
   }, [open]);
 
-  const pick = (fileName: string, text: string) => {
+  const pick = (fileName: string, text: string, event: AnalyticsEvent) => {
+    trackEvent(event);
     download(fileName, text);
     close(true);
   };
@@ -87,7 +89,9 @@ export default function DownloadMenu() {
           <div className="download-menu" ref={menuRef} role="menu" style={position}>
             <button
               className="menu-item"
-              onClick={() => pick(activeFile, contentOf(activeFile))}
+              onClick={() =>
+                pick(activeFile, contentOf(activeFile), "download-export-asm")
+              }
               role="menuitem"
               type="button"
             >
@@ -97,7 +101,9 @@ export default function DownloadMenu() {
             <button
               className="menu-item"
               disabled={!hex}
-              onClick={() => hex && pick(`${baseName}.h`, hex)}
+              onClick={() =>
+                hex && pick(`${baseName}.h`, hex, "download-export-hex")
+              }
               role="menuitem"
               type="button"
             >
@@ -107,7 +113,9 @@ export default function DownloadMenu() {
             <button
               className="menu-item"
               disabled={!lst}
-              onClick={() => lst && pick(`${baseName}.lst`, lst)}
+              onClick={() =>
+                lst && pick(`${baseName}.lst`, lst, "download-export-lst")
+              }
               role="menuitem"
               type="button"
             >

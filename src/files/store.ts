@@ -8,6 +8,7 @@ export interface CompiledArtifact {
   hex: string; // Intel HEX (C16 -H output) — loadable by Z80sim's Load menu
   lst: string; // listing
   sourceAtCompile: string; // source snapshot when compiled (for staleness)
+  compiledAt?: number; // epoch ms; absent on artifacts stored before this field
 }
 
 export interface AsmFile {

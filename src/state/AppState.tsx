@@ -36,6 +36,13 @@ import {
 export const hexName = (displayName: string) =>
   dosBaseName(displayName) + ".H";
 
+/** A build product of one source file. */
+export type ArtifactKind = "hex" | "lst";
+
+/** DOS 8.3 name of a build product, e.g. LAB1.H / LAB1.LST */
+export const artifactName = (displayName: string, kind: ArtifactKind) =>
+  dosBaseName(displayName) + (kind === "hex" ? ".H" : ".LST");
+
 export type OutputTab = "console" | "listing" | "hex";
 /** Bottom output channels, rendered as tabs in the fixed output footer. */
 export const OUTPUT_TABS: OutputTab[] = ["console", "listing", "hex"];
@@ -47,6 +54,8 @@ export const EDITOR_PREFIX = "file:";
 export const editorId = (name: string) => EDITOR_PREFIX + name;
 export const INSTRUCTIONS_PANEL_ID = "docs:z80-instructions";
 export const SIM_GUIDE_PANEL_ID = "docs:z80sim-guide";
+export const artifactPanelId = (name: string, kind: ArtifactKind) =>
+  `artifact:${kind}:${name}`;
 export const WELCOME_PANEL_ID = "docs:welcome";
 
 export interface AppState {
@@ -59,6 +68,8 @@ export interface AppState {
   openInstructionReference: () => void;
   /** Open (or focus) the Z80sim key reference. */
   openSimGuide: () => void;
+  /** Open a build product (.H / .LST) as a read-only tab. */
+  openArtifact: (name: string, kind: ArtifactKind) => void;
   /** Open (or focus) the Welcome / tutorial panel. */
   openWelcome: () => void;
   createFile: (input: string) => void;
@@ -190,7 +201,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // Docs (instruction reference, Z80sim guide, Welcome) all open as a tab
   // beside the editors, and focus rather than duplicate if already open.
   const openDocPanel = useCallback(
-    (id: string, component: string, title: string) => {
+    (
+      id: string,
+      component: string,
+      title: string,
+      params?: Record<string, unknown>,
+    ) => {
       const api = dockApiRef.current;
       if (!api) return;
       const existing = api.getPanel(id);
@@ -205,6 +221,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         id,
         component,
         title,
+        params,
         position: anyEditor
           ? { referencePanel: anyEditor.id, direction: "within" }
           : undefined,
@@ -220,6 +237,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const openSimGuide = useCallback(
     () => openDocPanel(SIM_GUIDE_PANEL_ID, "simGuide", "Z80sim Guide"),
+    [openDocPanel],
+  );
+
+  const openArtifact = useCallback(
+    (name: string, kind: ArtifactKind) =>
+      openDocPanel(
+        artifactPanelId(name, kind),
+        "artifact",
+        artifactName(name, kind),
+        { name, kind },
+      ),
     [openDocPanel],
   );
 
@@ -375,7 +403,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setFiles((prev) => {
           const next = prev.map((f) =>
             f.name === fileName
-              ? { ...f, compiled: { hex: r.hex, lst: r.listing, sourceAtCompile } }
+              ? {
+                  ...f,
+                  compiled: {
+                    hex: r.hex,
+                    lst: r.listing,
+                    sourceAtCompile,
+                    compiledAt: Date.now(),
+                  },
+                }
               : f,
           );
           saveFiles(next);
@@ -499,6 +535,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     openFile,
     openInstructionReference,
     openSimGuide,
+    openArtifact,
     openWelcome,
     createFile,
     importFiles,
