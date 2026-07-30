@@ -6,8 +6,8 @@ export default function BuildSuccessActions() {
     activeArtifacts,
     activeFile,
     buildState,
-    download,
-    focusOutput,
+    // download,
+    // focusOutput,
     simRunning,
     toggleSimulator,
   } = useApp();
@@ -28,7 +28,7 @@ export default function BuildSuccessActions() {
           {simRunning ? "Close Z80sim" : "Open Z80sim"}
         </button>
         {activeArtifacts.map((artifact) => {
-          const ready = artifact.state === "ready" && !!artifact.text;
+          // const ready = artifact.state === "ready" && !!artifact.text;
           return (
             <span className="build-artifact-actions" key={artifact.kind}>
               {/* <button
