@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { loadCommandStrokes, sendStrokes, type KeyStroke } from "../dosbox/keys";
 import { startSimulator } from "../dosbox/simulator";
 import { simulatorGuidance } from "../dosbox/simulatorUi";
 import { Icon } from "../Icon";
 import { COARSE_QUERY, useMediaQuery } from "../responsive";
 import { useApp } from "../state/AppState";
+import SimKeyboard from "./SimKeyboard";
 
 // The panel's existence == the simulator running. Mounting starts Z80sim;
 // closing the tab (or Stop) removes the panel -> unmount -> stop.
@@ -26,6 +28,11 @@ export default function SimulatorPanel() {
   // Bumping this re-runs the boot effect, which is how Retry works.
   const [bootAttempt, setBootAttempt] = useState(0);
   const touch = useMediaQuery(COARSE_QUERY);
+  // Open by default on touch: without a physical keyboard this bar is the only
+  // way to drive z80sim at all, so hiding it behind a toggle would repeat the
+  // mistake js-dos makes.
+  const [keyboardOpen, setKeyboardOpen] = useState(touch);
+  const [typing, setTyping] = useState(false);
   const buildReady = statusOf(activeFile) === "fresh";
   const guidance = simulatorGuidance(
     simActiveState,
@@ -118,9 +125,41 @@ export default function SimulatorPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bootAttempt]);
 
+  // useMediaQuery settles after the first paint, so pick the default up then.
+  useEffect(() => {
+    if (touch) setKeyboardOpen(true);
+  }, [touch]);
+
   const focusSimulator = () => {
     hostRef.current?.focus();
   };
+
+  // A tap on our keyboard is a real key press as far as DOSBox is concerned:
+  // the emulator samples the keyboard per frame, so down and up have to be
+  // separated in time or the press is dropped.
+  const pressKey = useCallback((stroke: KeyStroke) => {
+    const ci = simHandleRef.current?.ci();
+    if (!ci) return;
+    // Our keys go straight to the emulator, so they work whether or not the
+    // host has DOM focus — but taking focus keeps the "keyboard → Z80sim"
+    // badge honest and dismisses the click-to-control overlay.
+    hostRef.current?.focus();
+    void sendStrokes(ci, [stroke], (ms) => new Promise((r) => setTimeout(r, ms)));
+  }, [simHandleRef]);
+
+  // The whole reason the old soft keyboard was unusable: loading a program
+  // meant typing a filename on a keyboard with no letters. We already know the
+  // name, so type it for them.
+  const loadHex = useCallback(() => {
+    const ci = simHandleRef.current?.ci();
+    const strokes = loadCommandStrokes(`${baseName}.h`);
+    if (!ci || !strokes || typing) return;
+    setTyping(true);
+    hostRef.current?.focus();
+    clearSimHexUpdate();
+    void sendStrokes(ci, strokes, (ms) => new Promise((r) => setTimeout(r, ms)))
+      .finally(() => setTyping(false));
+  }, [baseName, clearSimHexUpdate, simHandleRef, typing]);
 
   const badge = startError
     ? "Z80sim could not start"
@@ -138,16 +177,35 @@ export default function SimulatorPanel() {
           {badge}
         </span>
         <code>{startError ?? guidance.instruction}</code>
+        {simReady && !startError && !keyboardOpen && (
+          <button
+            className="tbtn sim-kbd-toggle"
+            onClick={() => setKeyboardOpen(true)}
+            title="Show the Z80sim keyboard"
+            type="button"
+          >
+            <Icon name="terminal" size={14} />
+            Keys
+          </button>
+        )}
       </div>
       {simHexUpdate && simReady && !startError && (
         // Z80sim reads the hex once, at Load. A rebuild lands on C: silently,
         // so the running machine keeps executing the old program until the
-        // user loads it again.
+        // user loads it again — which is now one tap rather than a filename
+        // typed by hand.
         <div className="sim-reload-note" role="status">
           <Icon name="refresh" size={14} />
-          <span>
-            New build copied to C: — press L → {simHexUpdate} → Enter to reload
-          </span>
+          <span>New build copied to C: — reload {simHexUpdate} to run it</span>
+          <button
+            className="tbtn primary sim-reload-btn"
+            disabled={typing}
+            onClick={loadHex}
+            type="button"
+          >
+            <Icon name="refresh" size={13} />
+            Reload
+          </button>
           <button
             className="icon-btn"
             onClick={clearSimHexUpdate}
@@ -179,7 +237,7 @@ export default function SimulatorPanel() {
             </button>
           </div>
         )}
-        {!simActiveState && !startError && (
+        {!simActiveState && !startError && !keyboardOpen && (
           <div className="sim-focus-overlay">
             <button
               className="tbtn primary"
@@ -188,14 +246,21 @@ export default function SimulatorPanel() {
             >
               {touch ? "Tap to control Z80sim" : "Click to control Z80sim"}
             </button>
-            <span>
-              {touch
-                ? "no physical keyboard? use ⌨ in the strip down the left edge"
-                : guidance.instruction}
-            </span>
+            <span>{guidance.instruction}</span>
           </div>
         )}
       </div>
+      {/* Outside .sim-host on purpose: as a flex sibling it takes height from
+          the screen, so js-dos's ResizeObserver shrinks the canvas to fit
+          rather than the keyboard painting over the DOS display. */}
+      {keyboardOpen && simReady && !startError && (
+        <SimKeyboard
+          loadName={`${baseName}.h`}
+          onClose={() => setKeyboardOpen(false)}
+          onKey={pressKey}
+          onLoad={buildReady && !typing ? loadHex : undefined}
+        />
+      )}
     </div>
   );
 }

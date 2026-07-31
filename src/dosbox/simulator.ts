@@ -7,7 +7,6 @@
 // hand-write a renderer + keymap" path.
 
 import type { CommandInterface } from "emulators";
-import { isTouchDevice } from "../responsive";
 
 // Minimal shape of the js-dos v8 high-level options we use.
 interface DosOptions {
@@ -213,8 +212,6 @@ async function fetchBin(relPath: string): Promise<Uint8Array> {
 export interface SimulatorHandle {
   stop: () => Promise<void>;
   ci: () => CommandInterface | null;
-  /** True when js-dos is showing its own sidebar (the soft-keyboard toggle). */
-  hasSoftKeyboard: boolean;
 }
 
 /**
@@ -248,13 +245,11 @@ export async function startSimulator(
     "z80sim.exe",
   ].join("\n");
 
-  // z80sim is driven entirely by the keyboard (L to load, hex digits, Enter),
-  // so a device without one needs js-dos's soft keyboard. That toggle lives in
-  // the js-dos sidebar, which `kiosk: true` hides outright — so kiosk is only
-  // safe on pointer-fine devices. On touch we show the sidebar (a 3rem strip
-  // overlaid on the left of the DOS screen) to get the keyboard button, plus
-  // fullscreen, for free.
-  const touch = isTouchDevice();
+  // Kiosk everywhere: it hides the js-dos sidebar, a 3rem strip that overlays
+  // the left edge of the DOS screen. We briefly ran without it on touch to
+  // reach js-dos's own soft keyboard, but that keyboard's default page has no
+  // letters at all — useless for a machine whose every command is a letter —
+  // so SimKeyboard replaces it and the strip can go back to being hidden.
   let ci: CommandInterface | null = null;
   const props = Dos(el, {
     dosboxConf,
@@ -263,8 +258,7 @@ export async function startSimulator(
     backend: "dosbox",
     autoStart: true,
     noCloud: true,
-    kiosk: !touch,
-    thinSidebar: false, // full sidebar => soft keyboard is one tap, not two
+    kiosk: true,
     onEvent: (event, readyCi) => {
       if (event === "ci-ready" && readyCi) ci = readyCi;
     },
@@ -272,9 +266,8 @@ export async function startSimulator(
 
   // js-dos applies `kiosk` from a store action, and a *second* Dos() on the
   // same page reuses that store — so a panel reopened after a stop() can
-  // inherit the previous run's kiosk flag. Re-assert it explicitly.
-  props.setKiosk?.(!touch);
-  props.setThinSidebar?.(false);
+  // inherit the previous run's flag. Re-assert it explicitly.
+  props.setKiosk?.(true);
 
   // js-dos only auto-starts (dos/bndReady -> autoStart && countDownStart===0
   // -> bndPlay) on a fresh page load. Two things break that on our panels:
@@ -291,7 +284,6 @@ export async function startSimulator(
   return {
     stop: () => props.stop(),
     ci: () => ci,
-    hasSoftKeyboard: touch,
   };
 }
 

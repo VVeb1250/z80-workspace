@@ -31,15 +31,12 @@ test("asks for a build before it explains loading", () => {
   }
 });
 
-test("points touch users at the on-screen keyboard, not the physical one", () => {
-  // "Keyboard → Editor" is meaningless on a phone: there is no keyboard to
-  // steer, so the hint has to name js-dos's own soft keyboard instead.
+test("points touch users at the Load button and ignores focus", () => {
+  // "Keyboard → Editor" is meaningless on a phone, and so is focus: SimKeyboard
+  // sends keys to the emulator directly, so the hint must not change with it.
   const idle = simulatorGuidance(false, "lab1.h", true, true);
-  assert.equal(idle.badge, "Tap to control");
-  assert.equal(idle.instruction, "tap the screen to control Z80sim");
-
   const active = simulatorGuidance(true, "lab1.h", true, true);
-  assert.equal(active.badge, "Z80sim ready");
-  assert.match(active.instruction, /⌨/);
-  assert.match(active.instruction, /L → lab1\.h → Enter/);
+  assert.deepEqual(idle, active);
+  assert.equal(idle.badge, "Z80sim ready");
+  assert.equal(idle.instruction, "tap Load — it types lab1.h for you");
 });

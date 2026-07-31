@@ -1464,6 +1464,9 @@ kbd {
 .sim-panel {
   background: var(--sim-bg);
   color: var(--fg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .sim-uxbar {
@@ -1528,7 +1531,97 @@ kbd {
 }
 
 .sim-host:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
-.sim-host > * { height: 100%; width: 100%; }
+.sim-host > .sim-emulator { height: 100%; width: 100%; }
+
+/* ---- Z80sim on-screen keyboard ----
+   Sits below the screen as a flex sibling, so opening it shrinks the DOS
+   canvas instead of covering it (js-dos re-fits the canvas on resize). */
+.simkbd {
+  background: var(--surface);
+  border-top: 1px solid var(--border-strong);
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 5px calc(5px + env(safe-area-inset-bottom));
+  user-select: none;
+}
+
+.simkbd-row {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+/* Letters and digits want ten across, everything else twelve. */
+.simkbd-10 { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+
+/* Stagger the letter rows the way a real keyboard does, so the home row is
+   findable by shape rather than by reading every key. */
+.simkbd-indent { padding-inline: 5%; }
+.simkbd-indent2 { padding-inline: 15%; }
+
+.simkey {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  color: var(--fg-bright);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--mono);
+  font-size: 14px;
+  gap: 4px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 2px;
+  /* A key must not start a scroll or a text selection under the finger. */
+  touch-action: none;
+}
+
+.simkey:active { background: var(--accent); color: var(--fg-on-accent); }
+.simkey:disabled { color: var(--fg-dim); cursor: default; }
+
+.simkey-cmd {
+  background: var(--surface-active);
+  font-size: 12px;
+  text-transform: none;
+}
+
+.simkey-mod {
+  background: var(--surface);
+  font-size: 12px;
+  text-transform: none;
+}
+
+.simkey-load {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  color: var(--fg-on-accent);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 5px;
+  grid-column: span 4;
+  justify-content: center;
+  min-height: 36px;
+  overflow: hidden;
+  padding: 0 4px;
+  touch-action: none;
+  white-space: nowrap;
+}
+
+.simkey-load:disabled {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--fg-dim);
+  cursor: default;
+}
+
+.sim-kbd-toggle { flex: 0 0 auto; }
+.sim-reload-btn { flex: 0 0 auto; height: 26px; }
 
 .sim-focus-overlay {
   align-content: center;
