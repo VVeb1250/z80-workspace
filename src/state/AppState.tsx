@@ -17,6 +17,7 @@ import {
 import type { SimulatorHandle } from "../dosbox/simulator";
 import { shouldAutoMaximizeSimulator } from "../dosbox/simulatorUi";
 import { bulkDownloadReceipt, downloadReceipt } from "../downloads";
+import { matchesQuery, NARROW_QUERY } from "../responsive";
 import {
   allReadyArtifacts,
   artifactDescriptors,
@@ -144,6 +145,7 @@ export interface AppState {
   simHandleRef: React.MutableRefObject<SimulatorHandle | null>;
   sidebarOpen: boolean;
   toggleSidebar: () => void;
+  closeSidebar: () => void;
   simRunning: boolean;
   setSimRunning: (v: boolean) => void;
   toggleSimulator: () => void;
@@ -175,10 +177,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [buildAttempt, setBuildAttempt] = useState<BuildAttempt | null>(null);
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
-  const [outputCollapsed, setOutputCollapsed] = useState(false);
+  // On a phone the Explorer is an overlay drawer and the Output is a bottom
+  // sheet — both cover the editor, so they start closed. On a desktop they are
+  // side-by-side panes and start open, as before.
+  const narrow = matchesQuery(NARROW_QUERY);
+  const [outputCollapsed, setOutputCollapsed] = useState(narrow);
   const [outputMaximized, setOutputMaximized] = useState(false);
   const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>("console");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(!narrow);
   const [simRunning, setSimRunning] = useState(false);
   const [simHexUpdate, setSimHexUpdate] = useState<string | null>(null);
   const [tourActive, setTourActive] = useState(false);
@@ -579,6 +585,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const updateSettings = useCallback(
     (changes: Partial<WorkspaceSettings>) => {
@@ -673,6 +680,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     simHandleRef,
     sidebarOpen,
     toggleSidebar,
+    closeSidebar,
     simRunning,
     setSimRunning,
     toggleSimulator,

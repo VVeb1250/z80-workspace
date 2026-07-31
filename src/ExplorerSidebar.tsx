@@ -17,7 +17,19 @@ type Edit = { mode: "new" } | { mode: "rename"; name: string } | null;
 // Fixed left sidebar (outside dockview), like the VS Code / JetBrains project
 // pane. New / rename use an inline input row (VS Code style) — no native
 // prompt() dialogs.
-export default function ExplorerSidebar({ width }: { width: number }) {
+//
+// `width: null` means drawer mode (narrow viewports): the Explorer floats over
+// the editor and CSS sizes it, so the dragged pane width does not apply.
+// `onNavigate` then closes the drawer once the user has picked something —
+// leaving it open on top of the file they just opened is the classic drawer
+// mistake.
+export default function ExplorerSidebar({
+  onNavigate,
+  width,
+}: {
+  onNavigate?: () => void;
+  width: number | null;
+}) {
   const {
     files,
     activeFile,
@@ -115,11 +127,20 @@ export default function ExplorerSidebar({ width }: { width: number }) {
     </li>
   );
 
+  const drawer = width === null;
+  // Everything that puts a different thing on screen also dismisses the drawer.
+  const navigate = (open: () => void) => () => {
+    open();
+    onNavigate?.();
+  };
+
   return (
     <aside
       aria-label="Explorer"
-      className="app-sidebar"
-      style={{ flex: `0 0 ${width}px`, width }}
+      aria-modal={drawer ? true : undefined}
+      className={`app-sidebar${drawer ? " drawer" : ""}`}
+      role={drawer ? "dialog" : undefined}
+      style={drawer ? undefined : { flex: `0 0 ${width}px`, width }}
     >
       <div className="section-title">
         <div className="section-heading">
@@ -149,6 +170,20 @@ export default function ExplorerSidebar({ width }: { width: number }) {
           >
             <Icon name="plus" size={16} />
           </button>
+          {/* Drawer mode only: the scrim and Escape also dismiss it, but a
+              visible X is the affordance people actually look for, and on a
+              390px screen the scrim is a 70px strip. */}
+          {drawer && (
+            <button
+              aria-label="Close Explorer"
+              className="icon-btn drawer-close"
+              onClick={onNavigate}
+              title="Close Explorer"
+              type="button"
+            >
+              <Icon name="x" size={16} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -193,7 +228,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
                     : `${file.name}, ${statusTitle[compileStatus]}`
                 }
                 className="file-open"
-                onClick={() => openFile(file.name)}
+                onClick={navigate(() => openFile(file.name))}
                 onDoubleClick={() => startRename(file.name)}
                 title={
                   truncated ? `Open ${file.name}\n${dosNote}` : `Open ${file.name}`
@@ -256,7 +291,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
           <button
             className="file-open tool-file-open"
             data-tour="instructions"
-            onClick={openInstructionReference}
+            onClick={navigate(openInstructionReference)}
             title="Open Z80 instruction reference"
             type="button"
           >
@@ -267,7 +302,7 @@ export default function ExplorerSidebar({ width }: { width: number }) {
         <li className="tool-doc">
           <button
             className="file-open tool-file-open"
-            onClick={openSimGuide}
+            onClick={navigate(openSimGuide)}
             title="Open the Z80sim key reference"
             type="button"
           >

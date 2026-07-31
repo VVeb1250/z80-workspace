@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Dock from "./Dock";
 import Toolbar from "./Toolbar";
 import ExplorerSidebar from "./ExplorerSidebar";
 import OutputFooter from "./panels/OutputFooter";
 import GuidedTour from "./tutorial/GuidedTour";
 import { applyWorkspaceTheme } from "./editor/z80Theme";
+import { useNarrowLayout } from "./responsive";
 import { AppStateProvider, useApp } from "./state/AppState";
 import "./App.css";
 
@@ -16,13 +17,16 @@ const clampWidth = (w: number) =>
 function Shell() {
   const {
     clearDownloadToast,
+    closeSidebar,
     downloadToast,
     settings,
     sidebarOpen,
     outputMaximized,
   } = useApp();
   const workbenchRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
+  // Below the narrow breakpoint the Explorer stops being a pane and becomes an
+  // overlay drawer: at 390px a 230px pane leaves no editor to speak of.
+  const narrow = useNarrowLayout();
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = Number(localStorage.getItem("sidebarWidth"));
     return saved ? clampWidth(saved) : 230;
@@ -31,27 +35,6 @@ function Shell() {
   useLayoutEffect(() => {
     applyWorkspaceTheme(document.documentElement, settings.theme);
   }, [settings.theme]);
-
-  // Drag the divider to resize the Explorer.
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!dragging.current) return;
-      const left = workbenchRef.current?.getBoundingClientRect().left ?? 0;
-      setSidebarWidth(clampWidth(e.clientX - left));
-    };
-    const onUp = () => {
-      if (!dragging.current) return;
-      dragging.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, []);
 
   useEffect(() => {
     localStorage.setItem("sidebarWidth", String(sidebarWidth));
@@ -63,11 +46,35 @@ function Shell() {
     return () => window.clearTimeout(timer);
   }, [clearDownloadToast, downloadToast]);
 
-  const startDrag = () => {
-    dragging.current = true;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  };
+  // Escape closes the drawer, the usual way out of a modal overlay.
+  useEffect(() => {
+    if (!narrow || !sidebarOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeSidebar();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closeSidebar, narrow, sidebarOpen]);
+
+  // Drag the divider to resize the Explorer. Pointer events (not mouse events)
+  // so this works with a finger or a stylus too; pointer capture keeps the
+  // stream coming even when the pointer outruns the 4px handle.
+  const startDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const onDragMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const left = workbenchRef.current?.getBoundingClientRect().left ?? 0;
+    setSidebarWidth(clampWidth(event.clientX - left));
+  }, []);
+
+  const endDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
 
   const resizeWithKeyboard = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -79,23 +86,44 @@ function Shell() {
   return (
     <div className="app">
       <Toolbar />
-      <div className="workbench" ref={workbenchRef}>
+      <div
+        className={`workbench${narrow ? " narrow" : ""}`}
+        ref={workbenchRef}
+      >
+        {narrow && sidebarOpen && (
+          <button
+            aria-label="Close Explorer"
+            className="scrim"
+            onClick={closeSidebar}
+            type="button"
+          />
+        )}
         {sidebarOpen && (
           <>
-            <ExplorerSidebar width={sidebarWidth} />
-            <div
-              aria-label="Resize Explorer"
-              aria-orientation="vertical"
-              aria-valuemax={SIDEBAR_MAX}
-              aria-valuemin={SIDEBAR_MIN}
-              aria-valuenow={sidebarWidth}
-              className="resize"
-              onMouseDown={startDrag}
-              onKeyDown={resizeWithKeyboard}
-              role="separator"
-              tabIndex={0}
-              title="Drag to resize"
+            {/* In drawer mode the width comes from CSS (a share of the
+                viewport), so the dragged pane width is not applied. */}
+            <ExplorerSidebar
+              onNavigate={narrow ? closeSidebar : undefined}
+              width={narrow ? null : sidebarWidth}
             />
+            {!narrow && (
+              <div
+                aria-label="Resize Explorer"
+                aria-orientation="vertical"
+                aria-valuemax={SIDEBAR_MAX}
+                aria-valuemin={SIDEBAR_MIN}
+                aria-valuenow={sidebarWidth}
+                className="resize"
+                onKeyDown={resizeWithKeyboard}
+                onLostPointerCapture={endDrag}
+                onPointerDown={startDrag}
+                onPointerMove={onDragMove}
+                onPointerUp={endDrag}
+                role="separator"
+                tabIndex={0}
+                title="Drag to resize"
+              />
+            )}
           </>
         )}
         <div

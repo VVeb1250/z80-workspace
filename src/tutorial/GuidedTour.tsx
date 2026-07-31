@@ -76,10 +76,15 @@ export default function GuidedTour() {
   // area (e.g. the editor/output region), otherwise above/below a small button.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const maxLeft = vw - TOOLTIP_W - GAP;
-  const maxTop = vh - TOOLTIP_H - GAP;
+  // A fixed 320px card overhangs the right edge of anything narrower than
+  // ~344px (the clamp pins left to GAP and the width then runs off), so give
+  // the tooltip whatever the viewport can actually spare.
+  const tooltipW = Math.min(TOOLTIP_W, vw - GAP * 2);
+  const tooltipH = Math.min(TOOLTIP_H, vh - GAP * 2);
+  const maxLeft = vw - tooltipW - GAP;
+  const maxTop = vh - tooltipH - GAP;
   const centeredLeft = clamp(
-    spot.left + spot.width / 2 - TOOLTIP_W / 2,
+    spot.left + spot.width / 2 - tooltipW / 2,
     GAP,
     maxLeft,
   );
@@ -88,17 +93,17 @@ export default function GuidedTour() {
 
   if (spot.width > vw * 0.45) {
     // Large region: center within the viewport.
-    tooltipTop = clamp(vh / 2 - TOOLTIP_H / 2, GAP, maxTop);
+    tooltipTop = clamp(vh / 2 - tooltipH / 2, GAP, maxTop);
   } else if (spot.height > vh * 0.45) {
     // Tall, narrow: place to the side, vertically centered on the element.
     const rightOf = spot.left + spot.width + GAP;
     tooltipLeft =
-      rightOf <= maxLeft ? rightOf : clamp(spot.left - TOOLTIP_W - GAP, GAP, maxLeft);
-    tooltipTop = clamp(spot.top + spot.height / 2 - TOOLTIP_H / 2, GAP, maxTop);
+      rightOf <= maxLeft ? rightOf : clamp(spot.left - tooltipW - GAP, GAP, maxLeft);
+    tooltipTop = clamp(spot.top + spot.height / 2 - tooltipH / 2, GAP, maxTop);
   } else {
     // Small element: below if it fits, otherwise above.
     const below = spot.top + spot.height + GAP;
-    tooltipTop = below <= maxTop ? below : clamp(spot.top - TOOLTIP_H - GAP, GAP, maxTop);
+    tooltipTop = below <= maxTop ? below : clamp(spot.top - tooltipH - GAP, GAP, maxTop);
   }
 
   return createPortal(
@@ -117,7 +122,8 @@ export default function GuidedTour() {
         style={{
           top: tooltipTop,
           left: tooltipLeft,
-          width: TOOLTIP_W,
+          maxHeight: vh - GAP * 2,
+          width: tooltipW,
         }}
       >
         <div className="tour-tooltip-head">

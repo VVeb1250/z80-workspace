@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { startSimulator } from "../dosbox/simulator";
 import { simulatorGuidance } from "../dosbox/simulatorUi";
 import { Icon } from "../Icon";
+import { COARSE_QUERY, useMediaQuery } from "../responsive";
 import { useApp } from "../state/AppState";
 
 // The panel's existence == the simulator running. Mounting starts Z80sim;
@@ -24,11 +25,13 @@ export default function SimulatorPanel() {
   const [startError, setStartError] = useState<string | null>(null);
   // Bumping this re-runs the boot effect, which is how Retry works.
   const [bootAttempt, setBootAttempt] = useState(0);
+  const touch = useMediaQuery(COARSE_QUERY);
   const buildReady = statusOf(activeFile) === "fresh";
   const guidance = simulatorGuidance(
     simActiveState,
     `${baseName}.h`,
     buildReady,
+    touch,
   );
 
   useEffect(() => {
@@ -183,9 +186,13 @@ export default function SimulatorPanel() {
               onClick={focusSimulator}
               type="button"
             >
-              Click to control Z80sim
+              {touch ? "Tap to control Z80sim" : "Click to control Z80sim"}
             </button>
-            <span>{guidance.instruction}</span>
+            <span>
+              {touch
+                ? "no physical keyboard? use ⌨ in the strip down the left edge"
+                : guidance.instruction}
+            </span>
           </div>
         )}
       </div>

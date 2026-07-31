@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      viewport-fit=cover        — let the app paint under the notch/home bar;
+                                  App.css pays it back with safe-area insets.
+      interactive-widget=…      — when the on-screen keyboard opens, shrink the
+                                  layout viewport instead of scrolling it, so
+                                  100dvh keeps the editor above the keyboard.
+      No user-scalable=no: pinch zoom stays available for the instruction
+      tables. js-dos already blocks it over the DOS canvas via touch-action.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <title>z80-workspace</title>
     <!--
       GoatCounter web analytics (privacy-friendly, cookie-less).

@@ -10,6 +10,7 @@ import {
   setZ80Diagnostics,
 } from "../editor/z80Support";
 import { registerZ80Themes } from "../editor/z80Theme";
+import { COARSE_QUERY, useMediaQuery, useNarrowLayout } from "../responsive";
 import { useApp } from "../state/AppState";
 
 // Each editor tab is bound to one file, passed via dockview panel params.
@@ -19,6 +20,8 @@ export default function EditorPanel(
   const name = props.params.name;
   const { contentOf, diagnosticsFor, updateSource, setActiveFile, settings } =
     useApp();
+  const narrow = useNarrowLayout();
+  const touch = useMediaQuery(COARSE_QUERY);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const diagnostics = diagnosticsFor(name);
@@ -120,7 +123,11 @@ export default function EditorPanel(
         options={{
           ...editorTypographyOptions(settings.editorFontSize),
           fontFamily: 'Consolas, "Courier New", monospace',
-          minimap: { enabled: settings.minimap },
+          // The minimap costs ~70px of a 390px-wide editor to show a preview
+          // nobody can read at that size, so a narrow viewport overrides the
+          // setting. The setting itself is left alone — rotate to landscape
+          // or widen the window and the user's choice comes back.
+          minimap: { enabled: settings.minimap && !narrow },
           lineNumbers: settings.lineNumbers ? "on" : "off",
           padding: { top: 8, bottom: 8 },
           renderLineHighlight: "all",
@@ -144,7 +151,15 @@ export default function EditorPanel(
             ? { other: true, comments: false, strings: false }
             : false,
           suggestOnTriggerCharacters: settings.quickSuggestions,
-          wordWrap: settings.wordWrap ? "on" : "off",
+          // Horizontal scrolling to read the operand column is miserable on a
+          // phone; wrap regardless of the setting while the viewport is narrow.
+          wordWrap: settings.wordWrap || narrow ? "on" : "off",
+          // Monaco's 10px scrollbars are a mouse-sized target; widen them so
+          // they can be dragged with a finger.
+          scrollbar: {
+            horizontalScrollbarSize: touch ? 16 : 10,
+            verticalScrollbarSize: touch ? 16 : 10,
+          },
         }}
       />
     </div>

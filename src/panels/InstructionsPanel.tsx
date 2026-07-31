@@ -256,20 +256,26 @@ export default function InstructionsPanel() {
                         </tr>
                       </thead>
                       <tbody>
+                        {/* data-label feeds the phone layout, where the six
+                            columns restack into a card per encoding and the
+                            header row is hidden (see App.css). */}
                         {selected.encodings.map((encoding) => (
                           <tr key={`${encoding.form}-${encoding.opcode}`}>
                             <th scope="row"><code>{encoding.form}</code></th>
-                            <td>
+                            <td data-label="Opcode">
                               {opcodeFormat === "hex" ? (
                                 <code>{encoding.opcode}</code>
                               ) : (
                                 <OpcodeBitDiagram opcode={encoding.opcode} />
                               )}
                             </td>
-                            <td>{encoding.bytes}</td>
-                            <td>{encoding.mCycles}</td>
-                            <td>{encoding.tStates}</td>
-                            <td className="instruction-encoding-comment">
+                            <td data-label="Bytes">{encoding.bytes}</td>
+                            <td data-label="M-cycles">{encoding.mCycles}</td>
+                            <td data-label="T-states">{encoding.tStates}</td>
+                            <td
+                              className="instruction-encoding-comment"
+                              data-label="Comments"
+                            >
                               {encodingComment(selected.mnemonic, encoding)}
                             </td>
                           </tr>
