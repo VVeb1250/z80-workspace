@@ -1553,13 +1553,28 @@ kbd {
   grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 
-/* Letters and digits want ten across, everything else twelve. */
+/* The function row wants ten across, everything else twelve. */
 .simkbd-10 { grid-template-columns: repeat(10, minmax(0, 1fr)); }
 
-/* Stagger the letter rows the way a real keyboard does, so the home row is
-   findable by shape rather than by reading every key. */
-.simkbd-indent { padding-inline: 5%; }
-.simkbd-indent2 { padding-inline: 15%; }
+/* Off-screen but focusable: focus() on a display:none or visibility:hidden
+   field is a no-op, and the whole point of this one is that focusing it is
+   what raises the device's keyboard. */
+.sim-type-field {
+  border: 0;
+  height: 1px;
+  left: -9999px;
+  opacity: 0;
+  padding: 0;
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+
+.simkey-type.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--fg-on-accent);
+}
 
 .simkey {
   align-items: center;

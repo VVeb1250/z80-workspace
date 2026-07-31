@@ -5,6 +5,7 @@ import {
   loadCommandStrokes,
   sendStrokes,
   strokeForChar,
+  strokeForKeyName,
   strokesForText,
 } from "../src/dosbox/keys.ts";
 
@@ -72,6 +73,29 @@ test("sendStrokes emits a separated down/up pair per key", async () => {
   ]);
   assert.equal(waits.length, 4, "every press waits before and after release");
   assert.ok(waits.every((ms) => ms > 0));
+});
+
+test("the device keyboard bridge claims only non-printable keys", () => {
+  // Characters must NOT be claimed here. A phone keyboard reports them as
+  // "Unidentified" and delivers the text through beforeinput; a hardware
+  // keyboard fires both keydown and beforeinput, so claiming them in keydown
+  // as well would type every letter twice.
+  assert.equal(strokeForKeyName("a"), null);
+  assert.equal(strokeForKeyName("1"), null);
+  assert.equal(strokeForKeyName("."), null);
+  assert.equal(strokeForKeyName("Unidentified"), null);
+
+  assert.deepEqual(strokeForKeyName("Enter"), { code: KBD.enter });
+  assert.deepEqual(strokeForKeyName("Escape"), { code: KBD.esc });
+  assert.deepEqual(strokeForKeyName("ArrowUp"), { code: KBD.up });
+  assert.deepEqual(strokeForKeyName("Tab"), { code: KBD.tab });
+});
+
+test("F3-F10 reach the emulator — z80sim reads them as DIP switches", () => {
+  assert.deepEqual(strokeForKeyName("F3"), { code: KBD.f3 });
+  assert.deepEqual(strokeForKeyName("F10"), { code: KBD.f10 });
+  // Consecutive codes, so a bad transcription would show up as a gap.
+  assert.equal(KBD.f10 - KBD.f3, 7);
 });
 
 test("a shifted stroke wraps the key in shift down/up", async () => {

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadCommandStrokes, sendStrokes, type KeyStroke } from "../dosbox/keys";
+import {
+  KBD,
+  loadCommandStrokes,
+  sendStrokes,
+  strokeForKeyName,
+  strokesForText,
+  type KeyStroke,
+} from "../dosbox/keys";
 import { startSimulator } from "../dosbox/simulator";
 import { simulatorGuidance } from "../dosbox/simulatorUi";
 import { Icon } from "../Icon";
@@ -22,6 +29,12 @@ export default function SimulatorPanel() {
   } = useApp();
   const hostRef = useRef<HTMLDivElement>(null);
   const emulatorRef = useRef<HTMLDivElement>(null);
+  // An off-screen field whose only job is to make the device's own keyboard
+  // appear. While it holds focus it owns the keyboard completely — see the
+  // gate below, which hides those keys from js-dos so nothing types twice.
+  const typeFieldRef = useRef<HTMLInputElement>(null);
+  const typingNativeRef = useRef(false);
+  const [nativeKeyboard, setNativeKeyboard] = useState(false);
   const [simActiveState, setSimActiveState] = useState(false);
   const [simReady, setSimReady] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -71,6 +84,12 @@ export default function SimulatorPanel() {
       return null;
     };
     const gate = (e: KeyboardEvent) => {
+      // The type field is focused: its own handlers translate and forward
+      // every key, so js-dos must not also see them.
+      if (typingNativeRef.current) {
+        e.stopImmediatePropagation();
+        return;
+      }
       if (!simActive) {
         e.stopImmediatePropagation();
         return;
@@ -129,6 +148,85 @@ export default function SimulatorPanel() {
   useEffect(() => {
     if (touch) setKeyboardOpen(true);
   }, [touch]);
+
+  // Bridge the device's own keyboard into the emulator.
+  //
+  // A phone keyboard does not report usable keydowns for characters — iOS and
+  // Android both send key "Unidentified" / keyCode 229 and deliver the actual
+  // text through `beforeinput` instead. So characters are read there, and
+  // keydown is left to handle only the keys that produce no input event
+  // (Enter, Escape, arrows, and the function keys off a hardware keyboard).
+  // Splitting it that way is what stops a physical keyboard, which fires both,
+  // from typing everything twice.
+  useEffect(() => {
+    const field = typeFieldRef.current;
+    if (!field) return;
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const send = (strokes: KeyStroke[]) => {
+      const ci = simHandleRef.current?.ci();
+      if (ci && strokes.length) void sendStrokes(ci, strokes, wait);
+    };
+
+    const onBeforeInput = (event: Event) => {
+      const e = event as InputEvent;
+      // Never let the field actually accumulate text: it is a keyboard
+      // trigger, not somewhere to compose. Keeping it empty also means no
+      // stale caret position for the OS to argue with.
+      e.preventDefault();
+      if (e.inputType === "insertText" && e.data) {
+        const strokes = strokesForText(e.data);
+        if (strokes) send(strokes);
+      } else if (e.inputType === "deleteContentBackward") {
+        send([{ code: KBD.backspace }]);
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.key === "Unidentified") return;
+      // Backspace is handled in beforeinput; taking it here as well would
+      // delete twice on a hardware keyboard.
+      if (e.key === "Backspace") return;
+      const stroke = strokeForKeyName(e.key);
+      if (!stroke) return; // printable — beforeinput has it
+      e.preventDefault();
+      send([stroke]);
+    };
+
+    const onFocus = () => {
+      typingNativeRef.current = true;
+      setNativeKeyboard(true);
+    };
+    const onBlur = () => {
+      typingNativeRef.current = false;
+      setNativeKeyboard(false);
+    };
+    // Belt and braces for IMEs that ignore preventDefault on beforeinput.
+    const onInput = () => {
+      field.value = "";
+    };
+
+    field.addEventListener("beforeinput", onBeforeInput);
+    field.addEventListener("keydown", onKeyDown);
+    field.addEventListener("input", onInput);
+    field.addEventListener("focus", onFocus);
+    field.addEventListener("blur", onBlur);
+    return () => {
+      field.removeEventListener("beforeinput", onBeforeInput);
+      field.removeEventListener("keydown", onKeyDown);
+      field.removeEventListener("input", onInput);
+      field.removeEventListener("focus", onFocus);
+      field.removeEventListener("blur", onBlur);
+    };
+  }, [simHandleRef]);
+
+  const toggleNativeKeyboard = useCallback(() => {
+    const field = typeFieldRef.current;
+    if (!field) return;
+    // focus()/blur() must happen inside the user gesture or iOS ignores it.
+    if (typingNativeRef.current) field.blur();
+    else field.focus();
+  }, []);
 
   const focusSimulator = () => {
     hostRef.current?.focus();
@@ -253,12 +351,27 @@ export default function SimulatorPanel() {
       {/* Outside .sim-host on purpose: as a flex sibling it takes height from
           the screen, so js-dos's ResizeObserver shrinks the canvas to fit
           rather than the keyboard painting over the DOS display. */}
+      {/* Off-screen, but focusable — that is what raises the device keyboard.
+          It must not be display:none or hidden, or focus() is a no-op. */}
+      <input
+        aria-label="Type into Z80sim"
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect="off"
+        className="sim-type-field"
+        ref={typeFieldRef}
+        spellCheck={false}
+        tabIndex={-1}
+        type="text"
+      />
       {keyboardOpen && simReady && !startError && (
         <SimKeyboard
           loadName={`${baseName}.h`}
+          nativeKeyboard={nativeKeyboard}
           onClose={() => setKeyboardOpen(false)}
           onKey={pressKey}
           onLoad={buildReady && !typing ? loadHex : undefined}
+          onToggleNativeKeyboard={toggleNativeKeyboard}
         />
       )}
     </div>

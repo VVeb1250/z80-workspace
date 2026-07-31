@@ -2,18 +2,21 @@ import { useState } from "react";
 import { KBD, type KeyStroke } from "../dosbox/keys";
 import { Icon } from "../Icon";
 
-// z80sim's on-screen keyboard.
+// z80sim's control bar.
 //
-// js-dos ships one, but its default page has no letters at all (they hide
-// behind an unlabelled layout-cycle key) and it paints over the DOS screen.
-// This replaces it with a keyboard laid out for this machine, mounted as a
-// sibling of the canvas so opening it *shrinks* the screen instead of covering
-// it.
+// Letters, digits and punctuation come from the device's own keyboard (the
+// Type button focuses an off-screen field to raise it) — it is the keyboard
+// people already know, at the size their OS thinks is right. This bar carries
+// only what that keyboard cannot produce:
 //
-// It stays collapsed to a single command row by default. A full QWERTY costs
-// over half a phone screen, and once Load types the filename for you there is
-// very little left that needs letters — so the alphabet is one tap away rather
-// than permanently in the way.
+//   * z80sim's menu commands, which are single letters but worth a real label
+//   * F1-F12 — z80sim maps F3-F10 to the trainer's DIP switches
+//   * Ctrl / Alt, for Alt-X (exit) and friends
+//   * Esc and the arrows, which phone keyboards omit
+//   * Load, which types the hex filename so nobody has to
+//
+// js-dos's own soft keyboard is not used: its default page has no letters at
+// all, and it paints over the DOS screen instead of making room for itself.
 
 interface Key {
   label: string;
@@ -24,98 +27,114 @@ interface Key {
   title?: string;
 }
 
-const letter = (ch: string): Key => ({
-  label: ch,
+const cmd = (label: string, ch: string, title?: string): Key => ({
+  label,
   stroke: { code: ch.toUpperCase().charCodeAt(0) },
-});
-const digit = (ch: string): Key => ({
-  label: ch,
-  stroke: { code: ch.charCodeAt(0) },
-});
-
-// The commands off the bottom bar of the z80sim screen.
-const GO: Key = { label: "Go", stroke: { code: 71 }, span: 2, kind: "cmd" };
-const TRACE: Key = {
-  label: "Trace",
-  stroke: { code: 84 },
   span: 2,
   kind: "cmd",
-};
+  title,
+});
+
+const GO = cmd("Go", "g", "Go — run the loaded program");
+const TRACE = cmd("Trace", "t", "Trace — single step");
+const HELP = cmd("Help", "h");
+const EDITOR = cmd("Editor", "e");
+const CLEAR = cmd("Clear", "c", "Clear all registers");
+const MEMORY = cmd("Mem", "m", "Display main memory");
+const REGISTER = cmd("Reg", "r", "Assign data to a register");
+const DATA = cmd("Data", "d", "Assign data to memory");
+const UNASM = cmd("Unasm", "u", "Unassemble");
+const SPEED = cmd("Speed", "s", "Change run speed");
+
 const ESC: Key = {
   label: "Esc",
   stroke: { code: KBD.esc },
   span: 2,
   kind: "cmd",
-  title: "Escape",
-};
-const HELP: Key = { label: "Help", stroke: { code: 72 }, span: 2, kind: "cmd" };
-const EDITOR: Key = {
-  label: "Editor",
-  stroke: { code: 69 },
-  span: 2,
-  kind: "cmd",
+  title: "Escape — cancel",
 };
 const ENTER: Key = {
   label: "Enter",
   stroke: { code: KBD.enter },
-  span: 3,
+  span: 2,
   kind: "cmd",
 };
-const BACKSPACE: Key = {
-  label: "⌫",
-  stroke: { code: KBD.backspace },
+const CTRL: Key = {
+  label: "Ctrl",
+  stroke: { code: KBD.leftctrl },
   span: 2,
   kind: "mod",
-  title: "Backspace",
+};
+const ALT: Key = {
+  label: "Alt",
+  stroke: { code: KBD.leftalt },
+  span: 2,
+  kind: "mod",
+  title: "Alt — with X, exits z80sim",
+};
+const TAB: Key = {
+  label: "Tab",
+  stroke: { code: KBD.tab },
+  span: 2,
+  kind: "mod",
 };
 
-const NUMBER_ROW: Key[] = "1234567890".split("").map(digit);
-const LETTER_ROWS: Key[][] = [
-  "qwertyuiop".split("").map(letter),
-  "asdfghjkl".split("").map(letter),
-  "zxcvbnm".split("").map(letter),
-];
-const HEX_ROW: Key[] = "ABCDEF".split("").map((c) => ({
-  ...letter(c),
-  span: 2,
-}));
-
-const SYMBOLS: Key[] = [
-  { label: ".", stroke: { code: KBD.period } },
-  { label: "-", stroke: { code: KBD.minus } },
-  { label: "_", stroke: { code: KBD.minus, shift: true } },
-  { label: ":", stroke: { code: KBD.semicolon, shift: true } },
-  { label: "\\", stroke: { code: KBD.backslash } },
-  { label: "/", stroke: { code: KBD.slash } },
-  { label: ",", stroke: { code: KBD.comma } },
-  { label: "Tab", stroke: { code: KBD.tab }, kind: "mod" },
-  { label: "Ctrl", stroke: { code: KBD.leftctrl }, kind: "mod" },
-  { label: "Alt", stroke: { code: KBD.leftalt }, kind: "mod" },
-];
-
 const ARROWS: Key[] = [
-  { label: "←", stroke: { code: KBD.left }, kind: "mod", title: "Left" },
-  { label: "↑", stroke: { code: KBD.up }, kind: "mod", title: "Up" },
-  { label: "↓", stroke: { code: KBD.down }, kind: "mod", title: "Down" },
-  { label: "→", stroke: { code: KBD.right }, kind: "mod", title: "Right" },
+  { label: "←", stroke: { code: KBD.left }, span: 2, kind: "mod", title: "Left" },
+  { label: "↑", stroke: { code: KBD.up }, span: 2, kind: "mod", title: "Up" },
+  { label: "↓", stroke: { code: KBD.down }, span: 2, kind: "mod", title: "Down" },
+  {
+    label: "→",
+    stroke: { code: KBD.right },
+    span: 2,
+    kind: "mod",
+    title: "Right",
+  },
 ];
+
+// z80sim reads F3-F10 as the trainer's DIP switches, so the function row is
+// not padding here — it is hardware.
+const FUNCTION_KEYS: Key[] = (
+  [
+    ["F1", KBD.f1],
+    ["F2", KBD.f2],
+    ["F3", KBD.f3],
+    ["F4", KBD.f4],
+    ["F5", KBD.f5],
+    ["F6", KBD.f6],
+    ["F7", KBD.f7],
+    ["F8", KBD.f8],
+    ["F9", KBD.f9],
+    ["F10", KBD.f10],
+  ] as const
+).map(([label, code]) => ({
+  label,
+  stroke: { code },
+  kind: "mod" as const,
+  title: `${label}${code >= KBD.f3 && code <= KBD.f10 ? " — DIP switch" : ""}`,
+}));
 
 export interface SimKeyboardProps {
   onKey: (stroke: KeyStroke) => void;
   /** One-tap Load: types L, the hex name and Enter. Absent until a build exists. */
   onLoad?: () => void;
   loadName?: string;
+  /** Raise or dismiss the device's own keyboard. */
+  onToggleNativeKeyboard: () => void;
+  /** True while the device keyboard has focus. */
+  nativeKeyboard: boolean;
   onClose: () => void;
 }
 
 export default function SimKeyboard({
   loadName,
+  nativeKeyboard,
   onClose,
   onKey,
   onLoad,
+  onToggleNativeKeyboard,
 }: SimKeyboardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [page, setPage] = useState<"letters" | "symbols">("letters");
 
   const key = (k: Key, index: number) => (
     <button
@@ -123,7 +142,7 @@ export default function SimKeyboard({
       key={`${k.label}-${index}`}
       onPointerDown={(event) => {
         // Fire on press, not click: a click moves DOM focus off the sim host
-        // and flips the panel back to "out of Z80sim focus".
+        // (and off the type field, closing the device keyboard mid-sentence).
         event.preventDefault();
         onKey(k.stroke);
       }}
@@ -137,7 +156,7 @@ export default function SimKeyboard({
 
   return (
     <div
-      aria-label="Z80sim keyboard"
+      aria-label="Z80sim controls"
       className={`simkbd${expanded ? " expanded" : ""}`}
       role="group"
     >
@@ -163,75 +182,72 @@ export default function SimKeyboard({
         {key(TRACE, 1)}
         {key(ESC, 2)}
         <button
+          aria-pressed={nativeKeyboard}
+          className={`simkey simkey-type${nativeKeyboard ? " on" : ""}`}
+          // A real click: focus() only raises the device keyboard from inside
+          // a genuine user gesture, and preventDefault on pointerdown would
+          // suppress the focus change that gesture is for.
+          onClick={onToggleNativeKeyboard}
+          title={
+            nativeKeyboard
+              ? "Hide the device keyboard"
+              : "Type with the device keyboard"
+          }
+          type="button"
+        >
+          <Icon name="terminal" size={14} />
+        </button>
+        <button
           aria-expanded={expanded}
-          className="simkey simkey-mod simkbd-more"
+          className="simkey simkey-mod"
           onPointerDown={(event) => {
             event.preventDefault();
             setExpanded((v) => !v);
           }}
-          title={expanded ? "Fewer keys" : "All keys (letters, digits, arrows)"}
+          title={expanded ? "Fewer keys" : "Function keys and menu commands"}
           type="button"
         >
-          {expanded ? (
-            <Icon name="chevron-down" size={15} />
-          ) : (
-            <Icon name="chevron-up" size={15} />
-          )}
+          <Icon name={expanded ? "chevron-down" : "chevron-up"} size={15} />
         </button>
       </div>
 
       {expanded && (
         <>
+          <div className="simkbd-row simkbd-10">{FUNCTION_KEYS.map(key)}</div>
           <div className="simkbd-row simkbd-commands">
             {key(HELP, 3)}
-            {key(EDITOR, 4)}
-            {ARROWS.map(key)}
-            {key(BACKSPACE, 5)}
+            {key(MEMORY, 4)}
+            {key(REGISTER, 5)}
+            {key(DATA, 6)}
+            {key(CLEAR, 7)}
+            {key(UNASM, 8)}
           </div>
-
-          {page === "letters" ? (
-            <>
-              <div className="simkbd-row simkbd-10">
-                {NUMBER_ROW.map(key)}
-              </div>
-              <div className="simkbd-row simkbd-10">
-                {LETTER_ROWS[0].map(key)}
-              </div>
-              <div className="simkbd-row simkbd-10 simkbd-indent">
-                {LETTER_ROWS[1].map(key)}
-              </div>
-              <div className="simkbd-row simkbd-10 simkbd-indent2">
-                {LETTER_ROWS[2].map(key)}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="simkbd-row">{HEX_ROW.map(key)}</div>
-              <div className="simkbd-row simkbd-10">{SYMBOLS.map(key)}</div>
-            </>
-          )}
-
           <div className="simkbd-row simkbd-commands">
+            {key(EDITOR, 9)}
+            {key(SPEED, 10)}
+            {ARROWS.map(key)}
+          </div>
+          <div className="simkbd-row simkbd-commands">
+            {key(CTRL, 11)}
+            {key(ALT, 12)}
+            {key(TAB, 13)}
+            {key(ENTER, 14)}
+            {key(
+              {
+                label: "⌫",
+                stroke: { code: KBD.backspace },
+                span: 2,
+                kind: "mod",
+                title: "Backspace",
+              },
+              15,
+            )}
             <button
-              className="simkey simkey-mod"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                setPage((p) => (p === "letters" ? "symbols" : "letters"));
-              }}
-              style={{ gridColumn: "span 2" }}
-              title={page === "letters" ? "Hex and symbols" : "Letters"}
-              type="button"
-            >
-              {page === "letters" ? "A-F .?" : "abc"}
-            </button>
-            {key({ label: "space", stroke: { code: KBD.space }, span: 5 }, 6)}
-            {key(ENTER, 7)}
-            <button
-              aria-label="Hide keyboard"
+              aria-label="Hide controls"
               className="simkey simkey-mod"
               onClick={onClose}
               style={{ gridColumn: "span 2" }}
-              title="Hide keyboard"
+              title="Hide controls"
               type="button"
             >
               <Icon name="x" size={15} />

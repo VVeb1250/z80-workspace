@@ -116,6 +116,44 @@ export function strokesForText(text: string): KeyStroke[] | null {
   return strokes;
 }
 
+// The non-printable keys a device keyboard can produce. Printable characters
+// are deliberately absent: on a virtual keyboard they arrive as `beforeinput`
+// with the text, not as a usable keydown (phones report key "Unidentified" /
+// keyCode 229), and handling them in both places would type everything twice.
+const NAMED_KEYS: Record<string, KeyStroke> = {
+  Enter: { code: KBD.enter },
+  Tab: { code: KBD.tab },
+  Escape: { code: KBD.esc },
+  Backspace: { code: KBD.backspace },
+  Delete: { code: KBD.delete },
+  ArrowLeft: { code: KBD.left },
+  ArrowRight: { code: KBD.right },
+  ArrowUp: { code: KBD.up },
+  ArrowDown: { code: KBD.down },
+  Home: { code: KBD.home },
+  End: { code: KBD.end },
+  PageUp: { code: KBD.pageup },
+  PageDown: { code: KBD.pagedown },
+  F1: { code: KBD.f1 },
+  F2: { code: KBD.f2 },
+  F3: { code: KBD.f3 },
+  F4: { code: KBD.f4 },
+  F5: { code: KBD.f5 },
+  F6: { code: KBD.f6 },
+  F7: { code: KBD.f7 },
+  F8: { code: KBD.f8 },
+  F9: { code: KBD.f9 },
+  F10: { code: KBD.f10 },
+};
+
+/**
+ * The stroke for a KeyboardEvent.key that names a non-printable key, or null
+ * for anything printable (or unknown) — see NAMED_KEYS for why.
+ */
+export function strokeForKeyName(key: string): KeyStroke | null {
+  return NAMED_KEYS[key] ?? null;
+}
+
 /** The full key sequence for z80sim's Load command: L, the name, then Enter. */
 export function loadCommandStrokes(hexFileName: string): KeyStroke[] | null {
   const name = strokesForText(hexFileName);
